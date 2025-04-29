@@ -13,15 +13,17 @@ out vec4 FragOthers;
 uniform vec3 Color;
 uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
+uniform float ElapsedTime;
 
 vec4 waterSpecular = vec4(0.1f, 0.0f, 0.0f, 0.0f);
 
 void main()
 {
-	FragAlbedo = vec4(Color.rgb * texture(ColorTexture, TexCoord).rgb, 1);
+	vec2 uv = vec2(TexCoord.x + ElapsedTime, TexCoord.y + ElapsedTime);
+	FragAlbedo = vec4(Color.rgb * texture(ColorTexture, uv).rgb, 1);
 
-	vec3 viewNormal = vec3(-0.5, 0, 0); //SampleNormalMap(NormalTexture, TexCoord, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
-	FragNormal = viewNormal.xy;
+	vec3 viewNormal = SampleNormalMap(NormalTexture, uv, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
+	FragNormal = ViewNormal.xy;
 
 	FragOthers = waterSpecular;
 }

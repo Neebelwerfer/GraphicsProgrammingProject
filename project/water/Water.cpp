@@ -25,7 +25,7 @@ void Water::RenderGUI(DearImGui imgui)
 
 }
 
-std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer)
+std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer, const float& time)
 {
     // Load and build shader
     std::vector<const char*> vertexShaderPaths;
@@ -45,6 +45,7 @@ std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer)
     // Get transform related uniform locations
     ShaderProgram::Location worldViewMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldViewMatrix");
     ShaderProgram::Location worldViewProjMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldViewProjMatrix");
+    ShaderProgram::Location timeLocation = shaderProgramPtr->GetUniformLocation("ElapsedTime");
 
     // Register shader with renderer
     renderer.RegisterShaderProgram(shaderProgramPtr,
@@ -52,6 +53,7 @@ std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer)
         {
             shaderProgram.SetUniform(worldViewMatrixLocation, camera.GetViewMatrix() * worldMatrix);
             shaderProgram.SetUniform(worldViewProjMatrixLocation, camera.GetViewProjectionMatrix() * worldMatrix);
+            shaderProgram.SetUniform(timeLocation, time);
         },
         nullptr
     );

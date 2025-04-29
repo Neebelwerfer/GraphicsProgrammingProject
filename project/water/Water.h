@@ -12,7 +12,7 @@ public:
 	~Water();
 
 	static void RenderGUI(DearImGui imgui);
-	static std::shared_ptr<Material> InitializeWaterMaterial(Renderer& renderer);
+	static std::shared_ptr<Material> InitializeWaterMaterial(Renderer& renderer, const float& time);
 
 private:
 	static std::shared_ptr<Material> _waterMaterial;

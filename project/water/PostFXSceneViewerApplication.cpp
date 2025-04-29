@@ -218,7 +218,7 @@ void PostFXSceneViewerApplication::InitializeMaterials()
         // Create material
         m_deferredMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
     }
-    m_waterMaterial = Water::InitializeWaterMaterial(m_renderer);
+    m_waterMaterial = Water::InitializeWaterMaterial(m_renderer, GetCurrentTime());
 }
 
 void PostFXSceneViewerApplication::InitializeModels()
@@ -423,7 +423,7 @@ void PostFXSceneViewerApplication::RenderGUI()
     // (todo) 09.X: Draw new controls
     if (auto window = m_imGui.UseWindow("Water"))
     {
-
+        
     }
 
     m_imGui.EndFrame();
