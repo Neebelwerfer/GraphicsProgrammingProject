@@ -25,14 +25,13 @@
 
 #include <ituGL/scene/ImGuiSceneVisitor.h>
 #include <imgui.h>
+#include "Water.h"
 
 PostFXSceneViewerApplication::PostFXSceneViewerApplication()
     : Application(1024, 1024, "Post FX Scene Viewer demo")
     , m_renderer(GetDevice())
     , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
-    , m_exposure(1.0f)
-    // (todo) 09.X: Set default value of configuration properties
-
+    , m_updateManually(false)
 {
 }
 
@@ -60,6 +59,7 @@ void PostFXSceneViewerApplication::Update()
     // Add the scene nodes to the renderer
     RendererSceneVisitor rendererSceneVisitor(m_renderer);
     m_scene.AcceptVisitor(rendererSceneVisitor);
+    
 }
 
 void PostFXSceneViewerApplication::Render()
@@ -193,7 +193,7 @@ void PostFXSceneViewerApplication::InitializeMaterials()
         filteredUniforms.insert("LightIndirect");
         filteredUniforms.insert("LightColor");
         filteredUniforms.insert("LightPosition");
-        filteredUniforms.insert("LightDirection");
+        filteredUniforms.insert("LightDirection"); 
         filteredUniforms.insert("LightAttenuation");
 
         // Get transform related uniform locations
@@ -218,6 +218,7 @@ void PostFXSceneViewerApplication::InitializeMaterials()
         // Create material
         m_deferredMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
     }
+    m_waterMaterial = Water::InitializeWaterMaterial(m_renderer);
 }
 
 void PostFXSceneViewerApplication::InitializeModels()
@@ -256,17 +257,35 @@ void PostFXSceneViewerApplication::InitializeModels()
     loader.SetMaterialProperty(ModelLoader::MaterialProperty::SpecularTexture, "SpecularTexture");
 
     // Load models
-    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
+ /*   std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
     std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
-    std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/Lighthouse.obj");
+    std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/Lighthouse.obj");*/
     std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
 
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
+    ModelLoader waterLoader(m_waterMaterial);
+    waterLoader.SetCreateMaterials(true);
+    waterLoader.GetTexture2DLoader().SetFlipVertical(true);
 
-    debugSphere->SetMaterial(0, std::make_shared<Material>(lightHouse->GetMaterial(0)));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("debugSphere", debugSphere));
+    // Link vertex properties to attributes
+    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Position, "VertexPosition");
+    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Normal, "VertexNormal");
+    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Tangent, "VertexTangent");
+    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Bitangent, "VertexBitangent");
+    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::TexCoord0, "VertexTexCoord");
+
+    // Link material properties to uniforms
+    waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::DiffuseColor, "Color");
+    waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::DiffuseTexture, "ColorTexture");
+    waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::NormalTexture, "NormalTexture");
+    std::shared_ptr<Model> waterPlane = waterLoader.LoadShared("models/water/water_plane.obj");
+
+    //m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
+    //m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
+    //m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
+
+    //debugSphere->SetMaterial(0, std::make_shared<Material>(lightHouse->GetMaterial(0)));
+    //m_scene.AddSceneNode(std::make_shared<SceneModel>("debugSphere", debugSphere));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("waterPlane", waterPlane));
 }
 
 void PostFXSceneViewerApplication::InitializeFramebuffers()
@@ -402,15 +421,9 @@ void PostFXSceneViewerApplication::RenderGUI()
     m_cameraController.DrawGUI(m_imGui);
 
     // (todo) 09.X: Draw new controls
-    if (auto window = m_imGui.UseWindow("Post FX"))
+    if (auto window = m_imGui.UseWindow("Water"))
     {
-        if (m_composeMaterial)
-        {
-            if (ImGui::DragFloat("Exposure", &m_exposure, 0.01f, 0.01f, 5.0f))
-            {
-                m_composeMaterial->SetUniformValue("Exposure", m_exposure);
-            }
-        }
+
     }
 
     m_imGui.EndFrame();

@@ -50,26 +50,20 @@ private:
     // Renderer
     Renderer m_renderer;
 
+    // Time
+    bool m_updateManually;
+
     // Skybox texture
     std::shared_ptr<TextureCubemapObject> m_skyboxTexture;
 
     // Materials
     std::shared_ptr<Material> m_defaultMaterial;
     std::shared_ptr<Material> m_deferredMaterial;
-    std::shared_ptr<Material> m_composeMaterial;
-    // (todo) 09.4: Add a new material for bloom
+    std::shared_ptr<Material> m_waterMaterial;
 
     // Framebuffers
     std::shared_ptr<FramebufferObject> m_sceneFramebuffer;
     std::shared_ptr<Texture2DObject> m_depthTexture;
     std::shared_ptr<Texture2DObject> m_sceneTexture;
-    // (todo) 09.3: Declare an array of 2 temporary framebuffers
-
-    // (todo) 09.3: Declare an array of 2 temporary textures
-
-
-    // Configuration values
-    float m_exposure;
-    // (todo) 09.X: Declare new configuration values
 
 };
