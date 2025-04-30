@@ -280,7 +280,6 @@ void PostFXSceneViewerApplication::InitializeModels()
     // Link material properties to uniforms
     waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::DiffuseColor, "Color");
     waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::DiffuseTexture, "ColorTexture");
-    waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::NormalTexture, "NormalTexture");
     std::shared_ptr<Model> waterPlane = waterLoader.LoadShared("models/water/water_plane.obj");
 
     //m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));

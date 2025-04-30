@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include <ituGL/geometry/Mesh.h>
 #include <ituGL/asset/ShaderLoader.h>
+#include <ituGL/asset/Texture2DLoader.h>
 
 
 Water::Water(Material waterMaterial)
@@ -64,8 +65,16 @@ std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer, flo
     filteredUniforms.insert("WorldViewProjMatrix");
     filteredUniforms.insert("ElapsedTime");
 
+    Texture2DLoader textureLoader;
+    textureLoader.SetFlipVertical(true);
+    auto normalMap = textureLoader.LoadTextureShared("models/water/water-normal.png", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16F);
+    auto flowMap = textureLoader.LoadTextureShared("models/water/flowmap.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA16F);
+
+
     // Create material
     std::shared_ptr waterMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
     waterMaterial->SetUniformValue("Color", glm::vec3(1.0f));
+    waterMaterial->SetUniformValue("NormalTexture", normalMap);
+    waterMaterial->SetUniformValue("FlowTexture", flowMap);
     return waterMaterial;
 }
