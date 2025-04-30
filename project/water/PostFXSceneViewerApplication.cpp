@@ -32,6 +32,7 @@ PostFXSceneViewerApplication::PostFXSceneViewerApplication()
     , m_renderer(GetDevice())
     , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_updateManually(false)
+    , m_timeElapsed(0)
 {
 }
 
@@ -59,6 +60,10 @@ void PostFXSceneViewerApplication::Update()
     // Add the scene nodes to the renderer
     RendererSceneVisitor rendererSceneVisitor(m_renderer);
     m_scene.AcceptVisitor(rendererSceneVisitor);
+    m_timeElapsed += GetDeltaTime();
+
+    if (m_timeElapsed > 100.0f)
+        m_timeElapsed = 0.0f;
     
 }
 
@@ -114,7 +119,7 @@ void PostFXSceneViewerApplication::InitializeLights()
     spotLight->SetDirection(glm::vec3(0.0f, -1.0f, 0.0f));
     spotLight->SetIntensity(5);
     spotLight->SetDistanceAttenuation(glm::vec2(5.0f, 10.0f));
-    spotLight->SetAngleAttenuation(glm::vec2(1.f, 1.f));
+    spotLight->SetAngleAttenuation(glm::vec2(0.0f, 0.3f));
     m_scene.AddSceneNode(std::make_shared<SceneLight>("spot light", spotLight));
 
     // Create a point light and add it to the scene
@@ -218,7 +223,7 @@ void PostFXSceneViewerApplication::InitializeMaterials()
         // Create material
         m_deferredMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
     }
-    m_waterMaterial = Water::InitializeWaterMaterial(m_renderer, GetCurrentTime());
+    m_waterMaterial = Water::InitializeWaterMaterial(m_renderer, m_timeElapsed);
 }
 
 void PostFXSceneViewerApplication::InitializeModels()
@@ -264,7 +269,6 @@ void PostFXSceneViewerApplication::InitializeModels()
 
     ModelLoader waterLoader(m_waterMaterial);
     waterLoader.SetCreateMaterials(true);
-    waterLoader.GetTexture2DLoader().SetFlipVertical(true);
 
     // Link vertex properties to attributes
     waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Position, "VertexPosition");
@@ -308,8 +312,6 @@ void PostFXSceneViewerApplication::InitializeFramebuffers()
     m_sceneFramebuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
     FramebufferObject::Unbind();
 
-    // (todo) 09.3: Add temp textures and frame buffers
-
 }
 
 void PostFXSceneViewerApplication::InitializeRenderer()
@@ -341,29 +343,11 @@ void PostFXSceneViewerApplication::InitializeRenderer()
     // Skybox pass
     //m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
 
-    // (todo) 09.3: Create a copy pass from m_sceneTexture to the first temporary texture
-
-
-    // (todo) 09.4: Replace the copy pass with a new bloom pass
-
-
-    // (todo) 09.3: Add blur passes
-
 
     // Final pass
     // (todo) 09.1: Replace with a new m_composeMaterial, using a new shader
     std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_sceneTexture);
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_renderer.GetDefaultFramebuffer()));
-
-    // (todo) 09.1: Set exposure uniform default value
-
-
-    // (todo) 09.2: Set uniform default values
-
-
-    // (todo) 09.4: Set the bloom texture uniform
-
-
 }
 
 std::shared_ptr<Material> PostFXSceneViewerApplication::CreatePostFXMaterial(const char* fragmentShaderPath, std::shared_ptr<Texture2DObject> sourceTexture)
@@ -423,7 +407,7 @@ void PostFXSceneViewerApplication::RenderGUI()
     // (todo) 09.X: Draw new controls
     if (auto window = m_imGui.UseWindow("Water"))
     {
-        
+        ImGui::SliderFloat("Time", &m_timeElapsed, 0, 100.0f);
     }
 
     m_imGui.EndFrame();

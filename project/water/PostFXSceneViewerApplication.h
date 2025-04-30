@@ -51,6 +51,7 @@ private:
     Renderer m_renderer;
 
     // Time
+    float m_timeElapsed;
     bool m_updateManually;
 
     // Skybox texture

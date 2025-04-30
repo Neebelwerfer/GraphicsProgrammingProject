@@ -17,13 +17,18 @@ uniform float ElapsedTime;
 
 vec4 waterSpecular = vec4(0.1f, 0.0f, 0.0f, 0.0f);
 
+vec2 FlowUV(vec2 uv)
+{
+	return uv + ElapsedTime * 0.01;	
+}
+
 void main()
 {
-	vec2 uv = vec2(TexCoord.x + ElapsedTime, TexCoord.y + ElapsedTime);
+	vec2 uv = FlowUV(TexCoord);
 	FragAlbedo = vec4(Color.rgb * texture(ColorTexture, uv).rgb, 1);
 
 	vec3 viewNormal = SampleNormalMap(NormalTexture, uv, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
-	FragNormal = ViewNormal.xy;
+	FragNormal = viewNormal.xy;
 
 	FragOthers = waterSpecular;
 }

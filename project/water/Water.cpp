@@ -25,7 +25,7 @@ void Water::RenderGUI(DearImGui imgui)
 
 }
 
-std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer, const float& time)
+std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer, float& time)
 {
     // Load and build shader
     std::vector<const char*> vertexShaderPaths;
@@ -49,7 +49,7 @@ std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer, con
 
     // Register shader with renderer
     renderer.RegisterShaderProgram(shaderProgramPtr,
-        [=](const ShaderProgram& shaderProgram, const glm::mat4& worldMatrix, const Camera& camera, bool cameraChanged)
+        [=, &time](const ShaderProgram& shaderProgram, const glm::mat4& worldMatrix, const Camera& camera, bool cameraChanged)
         {
             shaderProgram.SetUniform(worldViewMatrixLocation, camera.GetViewMatrix() * worldMatrix);
             shaderProgram.SetUniform(worldViewProjMatrixLocation, camera.GetViewProjectionMatrix() * worldMatrix);
@@ -62,6 +62,7 @@ std::shared_ptr<Material> Water::InitializeWaterMaterial(Renderer& renderer, con
     ShaderUniformCollection::NameSet filteredUniforms;
     filteredUniforms.insert("WorldViewMatrix");
     filteredUniforms.insert("WorldViewProjMatrix");
+    filteredUniforms.insert("ElapsedTime");
 
     // Create material
     std::shared_ptr waterMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
