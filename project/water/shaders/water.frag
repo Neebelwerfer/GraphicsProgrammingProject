@@ -15,33 +15,41 @@ uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
 uniform sampler2D FlowTexture;
 uniform float ElapsedTime;
+//TODO: add configurable variables
+uniform vec2 Jump;
+uniform float Tiling;
+uniform float Speed;
+uniform float FlowStrength;
+uniform float FlowOffset;
 
 vec4 waterSpecular = vec4(0.1f, 0.0f, 0.0f, 0.0f);
 
-vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float time, bool flowB)
+vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB)
 {
 	float phaseOffset = flowB ? 0.5 : 0;
 	float progress = fract(time + phaseOffset);
 	vec3 uvw;
-	uvw.xy = uv - flowVector * progress;
-	uvw.xy = (time - progress) * jump + uvw.xy;
+	uvw.xy = uv - flowVector * (progress * flowOffset);
+	uvw.xy *= tiling;
+	uvw.xy += phaseOffset;
+	uvw.xy += (time - progress) * jump;
 	uvw.z = 1 - abs(1 - 2 * progress);
 	return uvw;	
 }
 
 void main()
 {
-	vec2 Jump = vec2(0.2f, -0.2f);
 	vec2 flowVector = texture(FlowTexture, TexCoord).rg * 2 - 1;
+	flowVector *= FlowStrength;
 	float noise = texture(FlowTexture, TexCoord).a;
-	float time = ElapsedTime + noise;
+	float time = ElapsedTime * Speed + noise;
 
-	vec3 uvwA = FlowUVW(TexCoord, flowVector, Jump, time, false);
-	vec3 uvwB = FlowUVW(TexCoord, flowVector, Jump, time, true);
+	vec3 uvwA = FlowUVW(TexCoord, flowVector, Jump, FlowOffset, Tiling, time, false);
+	vec3 uvwB = FlowUVW(TexCoord, flowVector, Jump, FlowOffset, Tiling, time, true);
 	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z;
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
-	//vec3 viewNormal = SampleNormalMap(NormalTexture, uvw.rg, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
+	vec3 viewNormal = SampleNormalMap(NormalTexture, uvwA.rg + uvwB.rg, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
 
 	FragAlbedo = vec4(Color * (texA + texB), 1);
 	FragNormal = ViewNormal.xy;

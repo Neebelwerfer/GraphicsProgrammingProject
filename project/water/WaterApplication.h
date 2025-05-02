@@ -7,15 +7,16 @@
 #include <ituGL/renderer/Renderer.h>
 #include <ituGL/camera/CameraController.h>
 #include <ituGL/utils/DearImGui.h>
+#include "WaterManager.h"
 
 class Texture2DObject;
 class TextureCubemapObject;
 class Material;
 
-class PostFXSceneViewerApplication : public Application
+class WaterApplication : public Application
 {
 public:
-    PostFXSceneViewerApplication();
+    WaterApplication();
 
 protected:
     void Initialize() override;
@@ -52,15 +53,16 @@ private:
 
     // Time
     float m_timeElapsed;
-    bool m_updateManually;
+    bool m_play;
 
     // Skybox texture
     std::shared_ptr<TextureCubemapObject> m_skyboxTexture;
 
+    std::shared_ptr<WaterManager> m_waterManager;
+
     // Materials
     std::shared_ptr<Material> m_defaultMaterial;
     std::shared_ptr<Material> m_deferredMaterial;
-    std::shared_ptr<Material> m_waterMaterial;
 
     // Framebuffers
     std::shared_ptr<FramebufferObject> m_sceneFramebuffer;

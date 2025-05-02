@@ -1,7 +1,7 @@
-#include "PostFXSceneViewerApplication.h"
+#include "WaterApplication.h"
 
 int main()
 {
-    PostFXSceneViewerApplication sceneViewerApplication;
+    WaterApplication sceneViewerApplication;
     return sceneViewerApplication.Run();
 }

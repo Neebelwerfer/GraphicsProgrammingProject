@@ -1,4 +1,4 @@
-#include "PostFXSceneViewerApplication.h"
+#include "WaterApplication.h"
 
 #include <ituGL/asset/TextureCubemapLoader.h>
 #include <ituGL/asset/ShaderLoader.h>
@@ -25,32 +25,35 @@
 
 #include <ituGL/scene/ImGuiSceneVisitor.h>
 #include <imgui.h>
-#include "Water.h"
 
-PostFXSceneViewerApplication::PostFXSceneViewerApplication()
+const float _MaxPlaytime = 60;
+
+WaterApplication::WaterApplication()
     : Application(1024, 1024, "Post FX Scene Viewer demo")
     , m_renderer(GetDevice())
     , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
-    , m_updateManually(false)
+    , m_play(false)
     , m_timeElapsed(0)
 {
 }
 
-void PostFXSceneViewerApplication::Initialize()
+void WaterApplication::Initialize()
 {
     Application::Initialize();
 
     // Initialize DearImGUI
     m_imGui.Initialize(GetMainWindow());
+    m_waterManager = std::make_shared<WaterManager>(m_renderer, m_timeElapsed);
 
     InitializeCamera();
     InitializeLights();
     InitializeMaterials();
     InitializeModels();
     InitializeRenderer();
+
 }
 
-void PostFXSceneViewerApplication::Update()
+void WaterApplication::Update()
 {
     Application::Update();
 
@@ -60,14 +63,16 @@ void PostFXSceneViewerApplication::Update()
     // Add the scene nodes to the renderer
     RendererSceneVisitor rendererSceneVisitor(m_renderer);
     m_scene.AcceptVisitor(rendererSceneVisitor);
-    m_timeElapsed += GetDeltaTime();
 
-    if (m_timeElapsed > 100.0f)
+    if(m_play)
+        m_timeElapsed += GetDeltaTime();
+
+    if (m_timeElapsed > _MaxPlaytime)
         m_timeElapsed = 0.0f;
     
 }
 
-void PostFXSceneViewerApplication::Render()
+void WaterApplication::Render()
 {
     Application::Render();
 
@@ -80,7 +85,7 @@ void PostFXSceneViewerApplication::Render()
     RenderGUI();
 }
 
-void PostFXSceneViewerApplication::Cleanup()
+void WaterApplication::Cleanup()
 {
     // Cleanup DearImGUI
     m_imGui.Cleanup();
@@ -88,7 +93,7 @@ void PostFXSceneViewerApplication::Cleanup()
     Application::Cleanup();
 }
 
-void PostFXSceneViewerApplication::InitializeCamera()
+void WaterApplication::InitializeCamera()
 {
     // Create the main camera
     std::shared_ptr<Camera> camera = std::make_shared<Camera>();
@@ -105,7 +110,7 @@ void PostFXSceneViewerApplication::InitializeCamera()
     m_cameraController.SetCamera(sceneCamera);
 }
 
-void PostFXSceneViewerApplication::InitializeLights()
+void WaterApplication::InitializeLights()
 {
     // Create a directional light and add it to the scene
     std::shared_ptr<DirectionalLight> directionalLight = std::make_shared<DirectionalLight>();
@@ -129,7 +134,7 @@ void PostFXSceneViewerApplication::InitializeLights()
     //m_scene.AddSceneNode(std::make_shared<SceneLight>("point light", pointLight));
 }
 
-void PostFXSceneViewerApplication::InitializeMaterials()
+void WaterApplication::InitializeMaterials()
 {
     // G-buffer material
     {
@@ -223,10 +228,9 @@ void PostFXSceneViewerApplication::InitializeMaterials()
         // Create material
         m_deferredMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
     }
-    m_waterMaterial = Water::InitializeWaterMaterial(m_renderer, m_timeElapsed);
 }
 
-void PostFXSceneViewerApplication::InitializeModels()
+void WaterApplication::InitializeModels()
 {
     m_skyboxTexture = TextureCubemapLoader::LoadTextureShared("models/skybox/yoga_studio.hdr", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16F);
 
@@ -262,36 +266,19 @@ void PostFXSceneViewerApplication::InitializeModels()
     loader.SetMaterialProperty(ModelLoader::MaterialProperty::SpecularTexture, "SpecularTexture");
 
     // Load models
- /*   std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
+    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
     std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
-    std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/Lighthouse.obj");*/
+    std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
     std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
 
-    ModelLoader waterLoader(m_waterMaterial);
-    waterLoader.SetCreateMaterials(true);
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
 
-    // Link vertex properties to attributes
-    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Position, "VertexPosition");
-    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Normal, "VertexNormal");
-    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Tangent, "VertexTangent");
-    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::Bitangent, "VertexBitangent");
-    waterLoader.SetMaterialAttribute(VertexAttribute::Semantic::TexCoord0, "VertexTexCoord");
-
-    // Link material properties to uniforms
-    waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::DiffuseColor, "Color");
-    waterLoader.SetMaterialProperty(ModelLoader::MaterialProperty::DiffuseTexture, "ColorTexture");
-    std::shared_ptr<Model> waterPlane = waterLoader.LoadShared("models/water/water_plane.obj");
-
-    //m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
-    //m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
-    //m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
-
-    //debugSphere->SetMaterial(0, std::make_shared<Material>(lightHouse->GetMaterial(0)));
-    //m_scene.AddSceneNode(std::make_shared<SceneModel>("debugSphere", debugSphere));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("waterPlane", waterPlane));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane()));
 }
 
-void PostFXSceneViewerApplication::InitializeFramebuffers()
+void WaterApplication::InitializeFramebuffers()
 {
     int width, height;
     GetMainWindow().GetDimensions(width, height);
@@ -313,7 +300,7 @@ void PostFXSceneViewerApplication::InitializeFramebuffers()
 
 }
 
-void PostFXSceneViewerApplication::InitializeRenderer()
+void WaterApplication::InitializeRenderer()
 {
     int width, height;
     GetMainWindow().GetDimensions(width, height);
@@ -349,7 +336,7 @@ void PostFXSceneViewerApplication::InitializeRenderer()
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_renderer.GetDefaultFramebuffer()));
 }
 
-std::shared_ptr<Material> PostFXSceneViewerApplication::CreatePostFXMaterial(const char* fragmentShaderPath, std::shared_ptr<Texture2DObject> sourceTexture)
+std::shared_ptr<Material> WaterApplication::CreatePostFXMaterial(const char* fragmentShaderPath, std::shared_ptr<Texture2DObject> sourceTexture)
 {
     // We could keep this vertex shader and reuse it, but it looks simpler this way
     std::vector<const char*> vertexShaderPaths;
@@ -373,7 +360,7 @@ std::shared_ptr<Material> PostFXSceneViewerApplication::CreatePostFXMaterial(con
     return material;
 }
 
-Renderer::UpdateTransformsFunction PostFXSceneViewerApplication::GetFullscreenTransformFunction(std::shared_ptr<ShaderProgram> shaderProgramPtr) const
+Renderer::UpdateTransformsFunction WaterApplication::GetFullscreenTransformFunction(std::shared_ptr<ShaderProgram> shaderProgramPtr) const
 {
     // Get transform related uniform locations
     ShaderProgram::Location invViewMatrixLocation = shaderProgramPtr->GetUniformLocation("InvViewMatrix");
@@ -392,7 +379,7 @@ Renderer::UpdateTransformsFunction PostFXSceneViewerApplication::GetFullscreenTr
         };
 }
 
-void PostFXSceneViewerApplication::RenderGUI()
+void WaterApplication::RenderGUI()
 {
     m_imGui.BeginFrame();
 
@@ -403,10 +390,11 @@ void PostFXSceneViewerApplication::RenderGUI()
     // Draw GUI for camera controller
     m_cameraController.DrawGUI(m_imGui);
 
-    // (todo) 09.X: Draw new controls
     if (auto window = m_imGui.UseWindow("Water"))
     {
-        ImGui::SliderFloat("Time", &m_timeElapsed, 0, 100.0f);
+        ImGui::Checkbox("Play", &m_play);
+        ImGui::SliderFloat("Time", &m_timeElapsed, 0, _MaxPlaytime);
+        m_waterManager->RenderGUI(m_imGui);
     }
 
     m_imGui.EndFrame();

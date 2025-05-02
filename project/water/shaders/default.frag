@@ -20,7 +20,7 @@ void main()
 	FragAlbedo = vec4(Color.rgb * texture(ColorTexture, TexCoord).rgb, 1);
 
 	vec3 viewNormal = SampleNormalMap(NormalTexture, TexCoord, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
-	FragNormal = viewNormal.xy;
+	FragNormal = ViewNormal.xy;
 
 	FragOthers = texture(SpecularTexture, TexCoord);
 }
