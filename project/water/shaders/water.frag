@@ -17,19 +17,19 @@ uniform sampler2D FlowTexture;
 uniform float ElapsedTime;
 //TODO: add configurable variables
 uniform vec2 Jump;
-uniform float Tiling;
-uniform float Speed;
+uniform int Tiling;
+uniform float Speed; 
 uniform float FlowStrength;
 uniform float FlowOffset;
 
-vec4 waterSpecular = vec4(0.1f, 0.0f, 0.0f, 0.0f);
+vec4 waterSpecular = vec4(1.33f, 0.0f, 0.0f, 0.0f);
 
 vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB)
 {
 	float phaseOffset = flowB ? 0.5 : 0;
 	float progress = fract(time + phaseOffset);
 	vec3 uvw;
-	uvw.xy = uv - flowVector * (progress * flowOffset);
+	uvw.xy = uv - flowVector * (progress + flowOffset);
 	uvw.xy *= tiling;
 	uvw.xy += phaseOffset;
 	uvw.xy += (time - progress) * jump;
@@ -39,19 +39,26 @@ vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling
 
 void main()
 {
-	vec2 flowVector = texture(FlowTexture, TexCoord).rg * 2 - 1;
+	//Flow vector describing direction of flow
+	vec2 flowVector = texture(FlowTexture, TexCoord).rg;
 	flowVector *= FlowStrength;
 	float noise = texture(FlowTexture, TexCoord).a;
 	float time = ElapsedTime * Speed + noise;
 
+	//Get uvs based on 2 offset phases
 	vec3 uvwA = FlowUVW(TexCoord, flowVector, Jump, FlowOffset, Tiling, time, false);
 	vec3 uvwB = FlowUVW(TexCoord, flowVector, Jump, FlowOffset, Tiling, time, true);
+	
+	//Get combined texture colour based on the 2 offset phases
 	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z;
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
-	vec3 viewNormal = SampleNormalMap(NormalTexture, uvwA.rg + uvwB.rg, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
+	//Get the normal based on the 2 offset phases
+	vec3 normalA = texture(NormalTexture, uvwA.xy).rgb * uvwA.z;
+	vec3 normalB = texture(NormalTexture, uvwB.xy).rgb * uvwB.z;
+	vec2 normal = normalize(normalA + normalB).xy;
 
 	FragAlbedo = vec4(Color * (texA + texB), 1);
-	FragNormal = ViewNormal.xy;
+	FragNormal = normal;
 	FragOthers = waterSpecular;
 }

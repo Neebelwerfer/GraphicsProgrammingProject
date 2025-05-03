@@ -16,6 +16,7 @@
 #include <ituGL/shader/Material.h>
 #include <ituGL/geometry/Model.h>
 #include <ituGL/scene/SceneModel.h>
+#include <ituGL/scene/Transform.h>
 
 #include <ituGL/renderer/SkyboxRenderPass.h>
 #include <ituGL/renderer/GBufferRenderPass.h>
@@ -102,6 +103,9 @@ void WaterApplication::InitializeCamera()
 
     // Create a scene node for the camera
     std::shared_ptr<SceneCamera> sceneCamera = std::make_shared<SceneCamera>("camera", camera);
+    std::shared_ptr<Transform> cameraTransform = sceneCamera->GetTransform();
+    cameraTransform->SetTranslation(glm::vec3(-18, 9, -2));
+    cameraTransform->SetRotation(glm::vec3(-0.46, -1.6, 0));
 
     // Add the camera node to the scene
     m_scene.AddSceneNode(sceneCamera);
@@ -275,7 +279,10 @@ void WaterApplication::InitializeModels()
     m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
 
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane()));
+    auto test = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
+    auto trans = test->GetTransform();
+    trans->SetScale(glm::vec3(10, 1, 10));
+    m_scene.AddSceneNode(test);
 }
 
 void WaterApplication::InitializeFramebuffers()
@@ -327,8 +334,7 @@ void WaterApplication::InitializeRenderer()
     InitializeFramebuffers();
 
     // Skybox pass
-    //m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
-
+    m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
 
     // Final pass
     // (todo) 09.1: Replace with a new m_composeMaterial, using a new shader
