@@ -8,6 +8,7 @@
 #include <ituGL/lighting/Light.h>
 #include <ituGL/lighting/SpotLight.h>
 #include <imgui.h>
+#include <glm/trigonometric.hpp>
 
 ImGuiSceneVisitor::ImGuiSceneVisitor(DearImGui& imGui, const char* windowName) : m_imGui(imGui), m_windowName(windowName)
 {
@@ -71,13 +72,13 @@ void ImGuiSceneVisitor::VisitLight(SceneLight& sceneLight)
             if (light.GetType() == Light::Type::Spot)
             {
                 SpotLight& spot = (SpotLight&)light;
-                glm::vec2 angleAttenuation = spot.GetAngleAttenuation();
-                if (ImGui::DragFloat2("Angle Attenuation", &angleAttenuation[0], 0.1f, 0.0f, 10.0f))
-                    spot.SetAngleAttenuation(angleAttenuation);
+                glm::vec2 angleAttenuation = glm::degrees(spot.GetAngleAttenuation());
+                if (ImGui::DragFloat2("Angle Attenuation", &angleAttenuation[0], 1.0f))
+                    spot.SetAngleAttenuation(glm::radians(angleAttenuation));
                 
-                float angle = spot.GetAngle();
-                if (ImGui::DragFloat("Angle", &angle, 0.1f))
-                    spot.SetAngle(angle);
+                float angle = glm::degrees(spot.GetAngle());
+                if (ImGui::DragFloat("Angle", &angle, 1.0f))
+                    spot.SetAngle(glm::radians(angle));
 
             }
             else if (light.GetType() == Light::Type::Directional)
@@ -99,7 +100,7 @@ void ImGuiSceneVisitor::VisitLight(SceneLight& sceneLight)
 void ImGuiSceneVisitor::VisitModel(SceneModel& sceneModel)
 {
     if (auto window = m_imGui.UseWindow(m_windowName.c_str()))
-    {
+    {   
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.2f, 0.5f, 1.0f));
         if (ImGui::CollapsingHeader(sceneModel.GetName().c_str()))
         {
@@ -120,16 +121,17 @@ void ImGuiSceneVisitor::VisitModel(SceneModel& sceneModel)
 void ImGuiSceneVisitor::VisitTransform(Transform& transform)
 {
     glm::vec3 translation = transform.GetTranslation();
-    glm::vec3 rotation = transform.GetRotation();
+    glm::vec3 rotation = glm::degrees(transform.GetRotation());
     glm::vec3 scale = transform.GetScale();
 
     if (ImGui::DragFloat3("Translation", &translation[0], 0.1f))
     {
         transform.SetTranslation(translation);
     }
-    if (ImGui::DragFloat3("Rotation", &rotation[0], 0.1f))
+    if (ImGui::DragFloat3("Rotation", &rotation[0], 1.0f))
     {
-        transform.SetRotation(rotation);
+        rotation = glm::mod(rotation, 360.f);
+        transform.SetRotation(glm::radians(rotation));
     }
     if (ImGui::DragFloat3("Scale", &scale[0], 0.1f, 0.0f, 100000.0f))
     {

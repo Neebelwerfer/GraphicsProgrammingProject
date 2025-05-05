@@ -15,7 +15,8 @@ uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
 uniform sampler2D FlowTexture;
 uniform float ElapsedTime;
-//TODO: add configurable variables
+
+//Water properties
 uniform vec2 Jump;
 uniform int Tiling;
 uniform float Speed; 
@@ -53,16 +54,18 @@ void main()
 	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z; 
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
-	//Get the normal based on the 2 offset phases
+	//Get the viewnormals for each phase
 	vec3 normalA = SampleNormalMap(NormalTexture, uvwA.xy, normalize(ViewNormal), normalize(ViewTangent));
 	normalA *= uvwA.z;
 
 	vec3 normalB = SampleNormalMap(NormalTexture, uvwB.xy, normalize(ViewNormal), normalize(ViewTangent));
 	normalB *= uvwB.z;
 
+	//Combine this two normals
 	vec3 combinedViewSpaceNormal = normalize(normalA + normalB);
 
-	FragAlbedo = vec4(Color * (texA + texB), 1);//vec4(Color * (texA + texB), 1);
-	FragNormal = normalize(combinedViewSpaceNormal).xy; //test2.xy; // combinedViewSpaceNormal.xy;
+
+	FragAlbedo = vec4(Color * (texA + texB), 1);
+	FragNormal = normalize(combinedViewSpaceNormal).xy;
 	FragOthers = waterSpecular;
 }

@@ -30,12 +30,12 @@
 const float _MaxPlaytime = 60;
 
 WaterApplication::WaterApplication()
-    : Application(1024, 1024, "Post FX Scene Viewer demo")
+    : Application(1024, 1024, "Water Scene")
     , m_renderer(GetDevice())
     , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_play(false)
     , m_timeElapsed(0)
-    , showType(0)
+    , m_showType(0)
 {
 }
 
@@ -322,7 +322,7 @@ void WaterApplication::InitializeRenderer()
         m_deferredMaterial->SetUniformValue("AlbedoTexture", gbufferRenderPass->GetAlbedoTexture());
         m_deferredMaterial->SetUniformValue("NormalTexture", gbufferRenderPass->GetNormalTexture());
         m_deferredMaterial->SetUniformValue("OthersTexture", gbufferRenderPass->GetOthersTexture());
-        m_deferredMaterial->SetUniformValue("ShowType", showType);
+        m_deferredMaterial->SetUniformValue("ShowType", m_showType);
 
         // Get the depth texture from the gbuffer pass - This could be reworked
         m_depthTexture = gbufferRenderPass->GetDepthTexture();
@@ -402,35 +402,40 @@ void WaterApplication::RenderGUI()
     {
         ImGui::Checkbox("Play", &m_play);
         ImGui::SliderFloat("Time", &m_timeElapsed, 0, _MaxPlaytime);
-        if (ImGui::BeginListBox("Show Type"))
+        if (ImGui::CollapsingHeader("Rendering Settings"))
         {
+            ImGui::Indent();
+            if (ImGui::BeginListBox("Show Type"))
+            {
             
-            if (ImGui::Selectable("Lighting", showType == 0))
-            {
-                showType = 0;
-                m_deferredMaterial->SetUniformValue("ShowType", showType);
+                if (ImGui::Selectable("Lighting", m_showType == 0))
+                {
+                    m_showType = 0;
+                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
+                }
+                if (ImGui::Selectable("Albedo", m_showType == 1))
+                {
+                    m_showType = 1;
+                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
+                }
+                if (ImGui::Selectable("Position", m_showType == 2))
+                {
+                    m_showType = 2;
+                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
+                }
+                if (ImGui::Selectable("WorldNormal", m_showType == 3))
+                {
+                    m_showType = 3;
+                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
+                }
+                if (ImGui::Selectable("ViewNormal", m_showType == 4))
+                {
+                    m_showType = 4;
+                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
+                }
+                ImGui::EndListBox();
             }
-            if (ImGui::Selectable("Albedo", showType == 1))
-            {
-                showType = 1;
-                m_deferredMaterial->SetUniformValue("ShowType", showType);
-            }
-            if (ImGui::Selectable("Position", showType == 2))
-            {
-                showType = 2;
-                m_deferredMaterial->SetUniformValue("ShowType", showType);
-            }
-            if (ImGui::Selectable("WorldNormal", showType == 3))
-            {
-                showType = 3;
-                m_deferredMaterial->SetUniformValue("ShowType", showType);
-            }
-            if (ImGui::Selectable("ViewNormal", showType == 4))
-            {
-                showType = 4;
-                m_deferredMaterial->SetUniformValue("ShowType", showType);
-            }
-            ImGui::EndListBox();
+            ImGui::Unindent();
         }
         m_waterManager->RenderGUI(m_imGui);
     }

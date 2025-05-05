@@ -19,23 +19,28 @@ WaterManager::WaterManager(Renderer& renderer, float& time)
 
 void WaterManager::RenderGUI(DearImGui& imgui)
 {
-    if (ImGui::ColorEdit3("Colour", &m_colour[0]))
-        m_waterMaterial->SetUniformValue("Color", m_colour);
+    if (ImGui::CollapsingHeader("Water Settings"))
+    {
+        ImGui::Indent();
+        if (ImGui::ColorEdit3("Colour", &m_colour[0]))
+            m_waterMaterial->SetUniformValue("Color", m_colour);
 
-    if (ImGui::DragFloat2("Jump", &m_jump[0], 0.01f, -0.25f, 0.25f))
-        m_waterMaterial->SetUniformValue("Jump", m_jump);
+        if (ImGui::DragFloat2("Jump", &m_jump[0], 0.01f, -0.25f, 0.25f))
+            m_waterMaterial->SetUniformValue("Jump", m_jump);
 
-    if (ImGui::DragInt("Tiling", &m_tiling, 1, 1, 100))
-        m_waterMaterial->SetUniformValue("Tiling", m_tiling);
+        if (ImGui::DragInt("Tiling", &m_tiling, 1, 1, 100))
+            m_waterMaterial->SetUniformValue("Tiling", m_tiling);
 
-    if (ImGui::DragFloat("Speed", &m_speed, 0.1f, 0.0f, 100.f))
-        m_waterMaterial->SetUniformValue("Speed", m_speed);
+        if (ImGui::DragFloat("Speed", &m_speed, 0.1f, 0.0f, 100.f))
+            m_waterMaterial->SetUniformValue("Speed", m_speed);
 
-    if (ImGui::DragFloat("FlowStrength", &m_flowStrength, 0.1f, 0.0f, 100.f))
-        m_waterMaterial->SetUniformValue("FlowStrength", m_flowStrength);
+        if (ImGui::DragFloat("FlowStrength", &m_flowStrength, 0.1f, 0.0f, 100.f))
+            m_waterMaterial->SetUniformValue("FlowStrength", m_flowStrength);
 
-    if (ImGui::DragFloat("FlowOffset", &m_flowOffset, 0.05f, -1.0f, 1.f))
-        m_waterMaterial->SetUniformValue("FlowOffset", m_flowOffset);
+        if (ImGui::DragFloat("FlowOffset", &m_flowOffset, 0.05f, -1.0f, 1.f))
+            m_waterMaterial->SetUniformValue("FlowOffset", m_flowOffset);
+        ImGui::Unindent();
+    }
 }
 
 WaterManager::~WaterManager()
@@ -88,7 +93,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     textureLoader.SetGenerateMipmap(true);
     std::shared_ptr<Texture2DObject> albedoMap = textureLoader.LoadTextureShared("models/water/water.png", TextureObject::FormatRGB, TextureObject::InternalFormat::InternalFormatRGB16F);
     std::shared_ptr<Texture2DObject> flowMap = textureLoader.LoadTextureShared("models/water/flowmap.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA16F);
-    std::shared_ptr<Texture2DObject> normalMap = textureLoader.LoadTextureShared("models/water/water-normal.png", TextureObject::FormatRGB, TextureObject::InternalFormatRGB8);
+    std::shared_ptr<Texture2DObject> normalMap = textureLoader.LoadTextureShared("models/water/water-normal.png", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16);
 
     // Create material
     std::shared_ptr waterMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);

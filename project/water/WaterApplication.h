@@ -54,7 +54,7 @@ private:
     // Time
     float m_timeElapsed;
     bool m_play;
-    int showType;
+    int m_showType;
 
     // Skybox texture
     std::shared_ptr<TextureCubemapObject> m_skyboxTexture;
