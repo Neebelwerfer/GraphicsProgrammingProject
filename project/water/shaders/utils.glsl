@@ -22,7 +22,7 @@ vec3 GetDirection(vec3 fromPosition, vec3 toPosition)
 //
 float ClampedDot(vec3 v1, vec3 v2)
 {
-	return max(dot(v1, v2), 0);
+	return max(dot(v1, v2), 0.05);
 }
 
 //
@@ -30,6 +30,20 @@ vec3 GetImplicitNormal(vec2 normal)
 {
 	float z = sqrt(1.0f - normal.x * normal.x - normal.y * normal.y);
 	return vec3(normal, z);
+}
+
+
+vec3 TransformTangentNormal(vec3 normalTangentSpace, vec3 normal, vec3 tangent)
+{
+	normal = normalize(normal);
+	vec3 bitangent = normalize(cross(normal, tangent));
+	tangent = cross(normal, bitangent);
+
+	// Create tangent space matrix
+	mat3 tangentMatrix = mat3(tangent, bitangent, normal);
+
+	// Return matrix in world space
+	return normalize(tangentMatrix * normalTangentSpace);
 }
 
 //

@@ -6,11 +6,11 @@
 #include <ituGL/asset/ModelLoader.h>
 
 WaterManager::WaterManager(Renderer& renderer, float& time)
-    : m_colour(0.0f)
+    : m_colour(1.0f)
     , m_jump(0.0f, 0.0f)
-    , m_tiling(3)
+    , m_tiling(5)
     , m_speed(0.5f)
-    , m_flowStrength(0.25f)
+    , m_flowStrength(0.0f)
     , m_flowOffset(0.0f)
 {
     InitializeWaterMaterial(renderer, time);
@@ -62,6 +62,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     // Get transform related uniform locations
     ShaderProgram::Location worldViewMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldViewMatrix");
     ShaderProgram::Location worldViewProjMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldViewProjMatrix");
+    ShaderProgram::Location worldMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldMatrix");
     ShaderProgram::Location timeLocation = shaderProgramPtr->GetUniformLocation("ElapsedTime");
 
     // Register shader with renderer
@@ -70,6 +71,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
         {
             shaderProgram.SetUniform(worldViewMatrixLocation, camera.GetViewMatrix() * worldMatrix);
             shaderProgram.SetUniform(worldViewProjMatrixLocation, camera.GetViewProjectionMatrix() * worldMatrix);
+            shaderProgram.SetUniform(worldMatrixLocation, worldMatrix);
             shaderProgram.SetUniform(timeLocation, time);
         },
         nullptr
@@ -79,13 +81,14 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     ShaderUniformCollection::NameSet filteredUniforms;
     filteredUniforms.insert("WorldViewMatrix");
     filteredUniforms.insert("WorldViewProjMatrix");
+    filteredUniforms.insert("WorldMatrix");
     filteredUniforms.insert("ElapsedTime");
 
     Texture2DLoader textureLoader;
-    textureLoader.SetFlipVertical(true);
+    textureLoader.SetGenerateMipmap(true);
     std::shared_ptr<Texture2DObject> albedoMap = textureLoader.LoadTextureShared("models/water/water.png", TextureObject::FormatRGB, TextureObject::InternalFormat::InternalFormatRGB16F);
     std::shared_ptr<Texture2DObject> flowMap = textureLoader.LoadTextureShared("models/water/flowmap.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA16F);
-    std::shared_ptr<Texture2DObject> normalMap = textureLoader.LoadTextureShared("models/water/NormalMap.png", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16F);
+    std::shared_ptr<Texture2DObject> normalMap = textureLoader.LoadTextureShared("models/water/water-normal.png", TextureObject::FormatRGB, TextureObject::InternalFormatRGB8);
 
     // Create material
     std::shared_ptr waterMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);

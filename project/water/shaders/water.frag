@@ -40,7 +40,7 @@ vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling
 void main()
 {
 	//Flow vector describing direction of flow
-	vec2 flowVector = texture(FlowTexture, TexCoord).rg;
+	vec2 flowVector = texture(FlowTexture, TexCoord).rg * 2.0f - vec2(1);
 	flowVector *= FlowStrength;
 	float noise = texture(FlowTexture, TexCoord).a;
 	float time = ElapsedTime * Speed + noise;
@@ -50,15 +50,19 @@ void main()
 	vec3 uvwB = FlowUVW(TexCoord, flowVector, Jump, FlowOffset, Tiling, time, true);
 	
 	//Get combined texture colour based on the 2 offset phases
-	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z;
+	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z; 
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
 	//Get the normal based on the 2 offset phases
-	vec3 normalA = texture(NormalTexture, uvwA.xy).rgb * uvwA.z;
-	vec3 normalB = texture(NormalTexture, uvwB.xy).rgb * uvwB.z;
-	vec2 normal = normalize(normalA + normalB).xy;
+	vec3 normalA = SampleNormalMap(NormalTexture, uvwA.xy, normalize(ViewNormal), normalize(ViewTangent));
+	normalA *= uvwA.z;
 
-	FragAlbedo = vec4(Color * (texA + texB), 1);
-	FragNormal = normal;
+	vec3 normalB = SampleNormalMap(NormalTexture, uvwB.xy, normalize(ViewNormal), normalize(ViewTangent));
+	normalB *= uvwB.z;
+
+	vec3 combinedViewSpaceNormal = normalize(normalA + normalB);
+
+	FragAlbedo = vec4(Color * (texA + texB), 1);//vec4(Color * (texA + texB), 1);
+	FragNormal = normalize(combinedViewSpaceNormal).xy; //test2.xy; // combinedViewSpaceNormal.xy;
 	FragOthers = waterSpecular;
 }

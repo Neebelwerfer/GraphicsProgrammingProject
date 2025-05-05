@@ -35,6 +35,7 @@ WaterApplication::WaterApplication()
     , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_play(false)
     , m_timeElapsed(0)
+    , showType(0)
 {
 }
 
@@ -270,19 +271,19 @@ void WaterApplication::InitializeModels()
     loader.SetMaterialProperty(ModelLoader::MaterialProperty::SpecularTexture, "SpecularTexture");
 
     // Load models
-    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
+    /*std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
     std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
     std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
     std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
 
     m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));*/
 
-    auto test = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
-    auto trans = test->GetTransform();
+    auto waterPlane = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
+    auto trans = waterPlane->GetTransform();
     trans->SetScale(glm::vec3(10, 1, 10));
-    m_scene.AddSceneNode(test);
+    m_scene.AddSceneNode(waterPlane);
 }
 
 void WaterApplication::InitializeFramebuffers()
@@ -321,6 +322,7 @@ void WaterApplication::InitializeRenderer()
         m_deferredMaterial->SetUniformValue("AlbedoTexture", gbufferRenderPass->GetAlbedoTexture());
         m_deferredMaterial->SetUniformValue("NormalTexture", gbufferRenderPass->GetNormalTexture());
         m_deferredMaterial->SetUniformValue("OthersTexture", gbufferRenderPass->GetOthersTexture());
+        m_deferredMaterial->SetUniformValue("ShowType", showType);
 
         // Get the depth texture from the gbuffer pass - This could be reworked
         m_depthTexture = gbufferRenderPass->GetDepthTexture();
@@ -400,6 +402,36 @@ void WaterApplication::RenderGUI()
     {
         ImGui::Checkbox("Play", &m_play);
         ImGui::SliderFloat("Time", &m_timeElapsed, 0, _MaxPlaytime);
+        if (ImGui::BeginListBox("Show Type"))
+        {
+            
+            if (ImGui::Selectable("Lighting", showType == 0))
+            {
+                showType = 0;
+                m_deferredMaterial->SetUniformValue("ShowType", showType);
+            }
+            if (ImGui::Selectable("Albedo", showType == 1))
+            {
+                showType = 1;
+                m_deferredMaterial->SetUniformValue("ShowType", showType);
+            }
+            if (ImGui::Selectable("Position", showType == 2))
+            {
+                showType = 2;
+                m_deferredMaterial->SetUniformValue("ShowType", showType);
+            }
+            if (ImGui::Selectable("WorldNormal", showType == 3))
+            {
+                showType = 3;
+                m_deferredMaterial->SetUniformValue("ShowType", showType);
+            }
+            if (ImGui::Selectable("ViewNormal", showType == 4))
+            {
+                showType = 4;
+                m_deferredMaterial->SetUniformValue("ShowType", showType);
+            }
+            ImGui::EndListBox();
+        }
         m_waterManager->RenderGUI(m_imGui);
     }
 

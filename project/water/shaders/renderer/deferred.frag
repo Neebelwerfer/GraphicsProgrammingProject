@@ -1,4 +1,4 @@
-//Inputs
+﻿//Inputs
 in vec2 TexCoord;
 
 //Outputs
@@ -11,32 +11,43 @@ uniform sampler2D NormalTexture;
 uniform sampler2D OthersTexture;
 uniform mat4 InvViewMatrix;
 uniform mat4 InvProjMatrix;
+uniform int ShowType;
 
 void main()
 {
-	// Extract information from g-buffers
-	vec3 position = ReconstructViewPosition(DepthTexture, TexCoord, InvProjMatrix);
-	vec3 albedo = texture(AlbedoTexture, TexCoord).rgb;
-	vec3 normal = GetImplicitNormal(texture(NormalTexture, TexCoord).xy);
-	vec4 others = texture(OthersTexture, TexCoord);
+		// Extract information from g-buffers
+		vec3 position = ReconstructViewPosition(DepthTexture, TexCoord, InvProjMatrix);
+		vec3 albedo = texture(AlbedoTexture, TexCoord).rgb;
+		vec3 normal = GetImplicitNormal(texture(NormalTexture, TexCoord).xy);
+		vec4 others = texture(OthersTexture, TexCoord);
 
-	// Compute view vector en view space
-	vec3 viewDir = GetDirection(position, vec3(0));
+		// Compute view vector in view space
+		vec3 viewDir = GetDirection(position, vec3(0));
 
-	// Convert position, normal and view vector to world space
-	position = (InvViewMatrix * vec4(position, 1)).xyz;
-	normal = (InvViewMatrix * vec4(normal, 0)).xyz;
-	viewDir = (InvViewMatrix * vec4(viewDir, 0)).xyz;
+		// Convert position, normal and view vector to world space
+		position = (InvViewMatrix * vec4(position, 1)).xyz;
+		normal = (InvViewMatrix * vec4(normal, 0)).xyz;
+		viewDir = (InvViewMatrix * vec4(viewDir, 0)).xyz;
 
-	// Set surface material data
-	SurfaceData data;
-	data.normal = normal;
-	data.albedo = albedo;
-	data.ambientOcclusion = others.x;
-	data.roughness = others.y;
-	data.metalness = others.z;
+		// Set surface material data
+		SurfaceData data;
+		data.normal = normal;
+		data.albedo = albedo;
+		data.ambientOcclusion = others.x;
+		data.roughness = others.y;
+		data.metalness = others.z;
 
-	// Compute lighting
-	vec3 lighting = ComputeLighting(position, data, viewDir, true);
-	FragColor = vec4(lighting, 1.0f);
+		// Compute lighting
+		vec3 lighting = ComputeLighting(position, data, viewDir, true);
+
+		if(ShowType == 0)
+			FragColor = vec4(lighting, 1.0f);
+		else if (ShowType == 1)
+			FragColor = vec4(albedo, 1.0f);
+		else if (ShowType == 2)
+			FragColor = vec4(position, 1.0f);
+		else if (ShowType == 3)
+			FragColor = vec4(normalize(normal), 1.0f);
+		else if (ShowType == 4)
+			FragColor = vec4(GetImplicitNormal(texture(NormalTexture, TexCoord).xy), 1.0f);
 }

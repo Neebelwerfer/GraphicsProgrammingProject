@@ -136,6 +136,7 @@ vec3 CombineLighting(vec3 diffuse, vec3 specular, SurfaceData data, vec3 lightDi
 	vec3 halfDir = normalize(viewDir + lightDir);
 	vec3 fresnel = FresnelSchlick(GetReflectance(data), viewDir, halfDir);
 
+	specular = clamp(specular, 0.0, 10.0);
 	// Linearly interpolate between the diffuse and specular term, using the fresnel value
 	vec3 lighting = mix(diffuse, specular, fresnel);
 
