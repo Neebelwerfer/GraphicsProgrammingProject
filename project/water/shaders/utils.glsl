@@ -32,7 +32,6 @@ vec3 GetImplicitNormal(vec2 normal)
 	return vec3(normal, z);
 }
 
-
 vec3 TransformTangentNormal(vec3 normalTangentSpace, vec3 normal, vec3 tangent)
 {
 	normal = normalize(normal);
@@ -44,6 +43,13 @@ vec3 TransformTangentNormal(vec3 normalTangentSpace, vec3 normal, vec3 tangent)
 
 	// Return matrix in world space
 	return normalize(tangentMatrix * normalTangentSpace);
+}
+
+vec3 SampleDerivativeMap(sampler2D derivativeMap, vec2 texCoord)
+{
+	vec3 dh = texture(derivativeMap, texCoord).agb;
+	dh.xy = dh.xy * 2 - 1;
+	return dh;
 }
 
 //

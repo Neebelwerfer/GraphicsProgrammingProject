@@ -14,6 +14,7 @@ uniform vec3 Color;
 uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
 uniform sampler2D FlowTexture;
+uniform sampler2D DerivativeMap;
 uniform float ElapsedTime;
 
 //Water properties
@@ -23,8 +24,11 @@ uniform float Speed;
 uniform float FlowStrength;
 uniform float FlowOffset;
 
+//Hard coded Specular property that could be made to an uniform input
 vec4 waterSpecular = vec4(1.33f, 0.0f, 0.0f, 0.0f);
 
+
+//Calculate the offset uv coordinates based on certain flow variables and time
 vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB)
 {
 	float phaseOffset = flowB ? 0.5 : 0;
@@ -54,18 +58,13 @@ void main()
 	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z; 
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
-	//Get the viewnormals for each phase
-	vec3 normalA = SampleNormalMap(NormalTexture, uvwA.xy, normalize(ViewNormal), normalize(ViewTangent));
-	normalA *= uvwA.z;
-
-	vec3 normalB = SampleNormalMap(NormalTexture, uvwB.xy, normalize(ViewNormal), normalize(ViewTangent));
-	normalB *= uvwB.z;
-
-	//Combine this two normals
-	vec3 combinedViewSpaceNormal = normalize(normalA + normalB);
-
+	//Get the normal from the derivative map
+	vec3 dhA = SampleDerivativeMap(DerivativeMap, uvwA.xy) * uvwA.z;
+	vec3 dhB = SampleDerivativeMap(DerivativeMap, uvwB.xy) * uvwB.z;
+	vec3 derivedNormal = normalize(vec3(-(dhA.xy + dhB.xy), 1));
+	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
 
 	FragAlbedo = vec4(Color * (texA + texB), 1);
-	FragNormal = normalize(combinedViewSpaceNormal).xy;
+	FragNormal = normalize(derivedNormal).xy;
 	FragOthers = waterSpecular;
 }

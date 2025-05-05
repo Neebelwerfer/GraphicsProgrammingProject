@@ -6,12 +6,12 @@
 #include <ituGL/asset/ModelLoader.h>
 
 WaterManager::WaterManager(Renderer& renderer, float& time)
-    : m_colour(1.0f)
+    : m_colour(0.31, 0.515, 0.663)
     , m_jump(0.0f, 0.0f)
     , m_tiling(5)
     , m_speed(0.5f)
     , m_flowStrength(0.0f)
-    , m_flowOffset(0.0f)
+    , m_flowOffset(-0.5f)
 {
     InitializeWaterMaterial(renderer, time);
     LoadModel();
@@ -19,7 +19,7 @@ WaterManager::WaterManager(Renderer& renderer, float& time)
 
 void WaterManager::RenderGUI(DearImGui& imgui)
 {
-    if (ImGui::CollapsingHeader("Water Settings"))
+    if (ImGui::CollapsingHeader("Water Settings", ImGuiTreeNodeFlags_::ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Indent();
         if (ImGui::ColorEdit3("Colour", &m_colour[0]))
@@ -31,10 +31,10 @@ void WaterManager::RenderGUI(DearImGui& imgui)
         if (ImGui::DragInt("Tiling", &m_tiling, 1, 1, 100))
             m_waterMaterial->SetUniformValue("Tiling", m_tiling);
 
-        if (ImGui::DragFloat("Speed", &m_speed, 0.1f, 0.0f, 100.f))
+        if (ImGui::DragFloat("Speed", &m_speed, 0.05f, 0.0f, 100.f))
             m_waterMaterial->SetUniformValue("Speed", m_speed);
 
-        if (ImGui::DragFloat("FlowStrength", &m_flowStrength, 0.1f, 0.0f, 100.f))
+        if (ImGui::DragFloat("FlowStrength", &m_flowStrength, 0.05f, 0.0f, 1.f))
             m_waterMaterial->SetUniformValue("FlowStrength", m_flowStrength);
 
         if (ImGui::DragFloat("FlowOffset", &m_flowOffset, 0.05f, -1.0f, 1.f))
@@ -94,6 +94,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     std::shared_ptr<Texture2DObject> albedoMap = textureLoader.LoadTextureShared("models/water/water.png", TextureObject::FormatRGB, TextureObject::InternalFormat::InternalFormatRGB16F);
     std::shared_ptr<Texture2DObject> flowMap = textureLoader.LoadTextureShared("models/water/flowmap.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA16F);
     std::shared_ptr<Texture2DObject> normalMap = textureLoader.LoadTextureShared("models/water/water-normal.png", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16);
+    std::shared_ptr<Texture2DObject> derivativeMap = textureLoader.LoadTextureShared("models/water/water-derivative-height.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA16);
 
     // Create material
     std::shared_ptr waterMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
@@ -101,6 +102,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     waterMaterial->SetUniformValue("ColorTexture", albedoMap);
     waterMaterial->SetUniformValue("NormalTexture", normalMap);
     waterMaterial->SetUniformValue("FlowTexture", flowMap);
+    waterMaterial->SetUniformValue("DerivativeMap", derivativeMap);
     waterMaterial->SetUniformValue("Jump", m_jump);
     waterMaterial->SetUniformValue("Tiling", m_tiling);
     waterMaterial->SetUniformValue("Speed", m_speed);
