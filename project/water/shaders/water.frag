@@ -61,13 +61,14 @@ void main()
 	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z; 
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
-	float finalHeightScale = flowVector.z * HeightScaleModulated * HeightScale;
+	float finalHeightScale = flowVector.z * HeightScaleModulated + HeightScale;
 
 	//Get the normal from the derivative map
 	vec3 dhA = SampleDerivativeMap(DerivativeMap, uvwA.xy) * (uvwA.z * finalHeightScale);
 	vec3 dhB = SampleDerivativeMap(DerivativeMap, uvwB.xy) * (uvwB.z * finalHeightScale);
 
 	vec3 derivedNormal = normalize(vec3(-(dhA.xy + dhB.xy), 1));
+	derivedNormal.y *= -1;
 	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
 
 	FragAlbedo = vec4(texture(FlowTexture, TexCoord).rg, 0, 1);

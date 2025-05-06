@@ -42,7 +42,7 @@ void WaterManager::RenderGUI(DearImGui& imgui)
         if (ImGui::DragFloat("Flow Offset", &m_flowOffset, 0.05f, -1.0f, 1.f))
             m_waterMaterial->SetUniformValue("FlowOffset", m_flowOffset);
 
-        if (ImGui::DragFloat("Height Scale (Constant)", &m_heightScale, 0.05f, 0.0f, 1.f))
+        if (ImGui::DragFloat("Height Scale (Base)", &m_heightScale, 0.05f, 0.0f, 10.f))
             m_waterMaterial->SetUniformValue("HeightScale", m_heightScale);
 
         if (ImGui::DragFloat("Height Scale (Modulated)", &m_heightScaleModulated, 0.5f, 0.0f, 100.f))
