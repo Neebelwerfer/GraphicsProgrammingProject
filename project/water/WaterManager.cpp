@@ -10,8 +10,10 @@ WaterManager::WaterManager(Renderer& renderer, float& time)
     , m_jump(0.0f, 0.0f)
     , m_tiling(5)
     , m_speed(0.5f)
-    , m_flowStrength(0.0f)
+    , m_flowStrength(0.1f)
     , m_flowOffset(-0.5f)
+    , m_heightScale(0.1f)
+    , m_heightScaleModulated(9)
 {
     InitializeWaterMaterial(renderer, time);
     LoadModel();
@@ -34,11 +36,17 @@ void WaterManager::RenderGUI(DearImGui& imgui)
         if (ImGui::DragFloat("Speed", &m_speed, 0.05f, 0.0f, 100.f))
             m_waterMaterial->SetUniformValue("Speed", m_speed);
 
-        if (ImGui::DragFloat("FlowStrength", &m_flowStrength, 0.05f, 0.0f, 1.f))
+        if (ImGui::DragFloat("Flow Strength", &m_flowStrength, 0.05f, 0.0f, 1.f))
             m_waterMaterial->SetUniformValue("FlowStrength", m_flowStrength);
 
-        if (ImGui::DragFloat("FlowOffset", &m_flowOffset, 0.05f, -1.0f, 1.f))
+        if (ImGui::DragFloat("Flow Offset", &m_flowOffset, 0.05f, -1.0f, 1.f))
             m_waterMaterial->SetUniformValue("FlowOffset", m_flowOffset);
+
+        if (ImGui::DragFloat("Height Scale (Constant)", &m_heightScale, 0.05f, 0.0f, 1.f))
+            m_waterMaterial->SetUniformValue("HeightScale", m_heightScale);
+
+        if (ImGui::DragFloat("Height Scale (Modulated)", &m_heightScaleModulated, 0.5f, 0.0f, 100.f))
+            m_waterMaterial->SetUniformValue("HeightScaleModulated", m_heightScaleModulated);
         ImGui::Unindent();
     }
 }
@@ -92,7 +100,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     Texture2DLoader textureLoader;
     textureLoader.SetGenerateMipmap(true);
     std::shared_ptr<Texture2DObject> albedoMap = textureLoader.LoadTextureShared("models/water/water.png", TextureObject::FormatRGB, TextureObject::InternalFormat::InternalFormatRGB16F);
-    std::shared_ptr<Texture2DObject> flowMap = textureLoader.LoadTextureShared("models/water/flowmap.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA16F);
+    std::shared_ptr<Texture2DObject> flowMap = textureLoader.LoadTextureShared("models/water/flow-speed-noise.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA32F);
     std::shared_ptr<Texture2DObject> normalMap = textureLoader.LoadTextureShared("models/water/water-normal.png", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16);
     std::shared_ptr<Texture2DObject> derivativeMap = textureLoader.LoadTextureShared("models/water/water-derivative-height.png", TextureObject::FormatRGBA, TextureObject::InternalFormatRGBA16);
 
@@ -108,6 +116,8 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     waterMaterial->SetUniformValue("Speed", m_speed);
     waterMaterial->SetUniformValue("FlowStrength", m_flowStrength);
     waterMaterial->SetUniformValue("FlowOffset", m_flowOffset);
+    waterMaterial->SetUniformValue("HeightScale", m_heightScale);
+    waterMaterial->SetUniformValue("HeightScaleModulated", m_heightScaleModulated);
     m_waterMaterial = waterMaterial;
 }
 

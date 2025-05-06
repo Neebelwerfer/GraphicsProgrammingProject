@@ -23,6 +23,8 @@ uniform int Tiling;
 uniform float Speed; 
 uniform float FlowStrength;
 uniform float FlowOffset;
+uniform float HeightScale;
+uniform float HeightScaleModulated;
 
 //Hard coded Specular property that could be made to an uniform input
 vec4 waterSpecular = vec4(1.33f, 0.0f, 0.0f, 0.0f);
@@ -45,25 +47,30 @@ vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling
 void main()
 {
 	//Flow vector describing direction of flow
-	vec2 flowVector = texture(FlowTexture, TexCoord).rg * 2.0f - vec2(1);
-	flowVector *= FlowStrength;
+	vec3 flowVector = texture(FlowTexture, TexCoord).rgb;
 	float noise = texture(FlowTexture, TexCoord).a;
 	float time = ElapsedTime * Speed + noise;
+	flowVector.xy *= 2 - 1;
+	flowVector *= FlowStrength;
 
 	//Get uvs based on 2 offset phases
-	vec3 uvwA = FlowUVW(TexCoord, flowVector, Jump, FlowOffset, Tiling, time, false);
-	vec3 uvwB = FlowUVW(TexCoord, flowVector, Jump, FlowOffset, Tiling, time, true);
+	vec3 uvwA = FlowUVW(TexCoord, flowVector.xy, Jump, FlowOffset, Tiling, time, false);
+	vec3 uvwB = FlowUVW(TexCoord, flowVector.xy, Jump, FlowOffset, Tiling, time, true);
 	
 	//Get combined texture colour based on the 2 offset phases
 	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z; 
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
+	float finalHeightScale = flowVector.z * HeightScaleModulated * HeightScale;
+
 	//Get the normal from the derivative map
-	vec3 dhA = SampleDerivativeMap(DerivativeMap, uvwA.xy) * uvwA.z;
-	vec3 dhB = SampleDerivativeMap(DerivativeMap, uvwB.xy) * uvwB.z;
+	vec3 dhA = SampleDerivativeMap(DerivativeMap, uvwA.xy) * (uvwA.z * finalHeightScale);
+	vec3 dhB = SampleDerivativeMap(DerivativeMap, uvwB.xy) * (uvwB.z * finalHeightScale);
+
 	vec3 derivedNormal = normalize(vec3(-(dhA.xy + dhB.xy), 1));
 	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
 
+	FragAlbedo = vec4(texture(FlowTexture, TexCoord).rg, 0, 1);
 	FragAlbedo = vec4(Color * (texA + texB), 1);
 	FragNormal = normalize(derivedNormal).xy;
 	FragOthers = waterSpecular;

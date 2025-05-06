@@ -30,4 +30,6 @@ private:
 	float m_speed;
 	float m_flowStrength;
 	float m_flowOffset;
+	float m_heightScale;
+	float m_heightScaleModulated;
 };
