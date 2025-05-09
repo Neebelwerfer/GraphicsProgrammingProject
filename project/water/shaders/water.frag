@@ -61,7 +61,16 @@ void main()
 	vec3 texA = texture(ColorTexture, uvwA.rg).rgb * uvwA.z; 
 	vec3 texB = texture(ColorTexture, uvwB.rg).rgb * uvwB.z;
 
+	//The height scale for our waves
 	float finalHeightScale = flowVector.z * HeightScaleModulated + HeightScale;
+	
+	//Get the normal based on the 2 offset phases
+	vec3 normalA = SampleNormalMapScaled(NormalTexture, uvwA.xy, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent), -finalHeightScale);
+	vec3 normalB = SampleNormalMapScaled(NormalTexture, uvwB.xy, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent), -finalHeightScale);
+	normalA *= uvwA.z;
+	normalB *= uvwB.z;
+
+	vec3 combinedViewSpaceNormal = normalize(normalA + normalB);
 
 	//Get the normal from the derivative map
 	vec3 dhA = SampleDerivativeMap(DerivativeMap, uvwA.xy) * (uvwA.z * finalHeightScale);
@@ -71,8 +80,8 @@ void main()
 	derivedNormal.y *= -1;
 	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
 
-	FragAlbedo = vec4(texture(FlowTexture, TexCoord).rg, 0, 1);
 	FragAlbedo = vec4(Color * (texA + texB), 1);
 	FragNormal = normalize(derivedNormal).xy;
+	FragNormal = normalize(combinedViewSpaceNormal).xy;
 	FragOthers = waterSpecular;
 }

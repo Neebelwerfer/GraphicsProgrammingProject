@@ -33,6 +33,7 @@ private:
     void InitializeRenderer();
 
     std::shared_ptr<Material> CreatePostFXMaterial(const char* fragmentShaderPath, std::shared_ptr<Texture2DObject> sourceTexture = nullptr);
+    std::shared_ptr<Material> CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture);
 
     Renderer::UpdateTransformsFunction GetFullscreenTransformFunction(std::shared_ptr<ShaderProgram> shaderProgramPtr) const;
 
@@ -56,6 +57,12 @@ private:
     bool m_play;
     int m_showType;
 
+    // SSR Properties
+    float m_maxDistance;
+    float m_resolution;
+    int   m_steps;
+    float m_thickness;
+
     // Skybox texture
     std::shared_ptr<TextureCubemapObject> m_skyboxTexture;
 
@@ -64,9 +71,15 @@ private:
     // Materials
     std::shared_ptr<Material> m_defaultMaterial;
     std::shared_ptr<Material> m_deferredMaterial;
+    std::shared_ptr<Material> m_ssrMaterial;
 
     // Framebuffers
     std::shared_ptr<FramebufferObject> m_sceneFramebuffer;
-    std::shared_ptr<Texture2DObject> m_depthTexture;
     std::shared_ptr<Texture2DObject> m_sceneTexture;
+    std::shared_ptr<Texture2DObject> m_depthTexture;
+    std::shared_ptr<Texture2DObject> m_normalTexture;
+    std::shared_ptr<Texture2DObject> m_otherTexture;
+
+    std::shared_ptr<FramebufferObject> m_reflectionBuffer;
+    std::shared_ptr<Texture2DObject> m_reflectiveColorTexture;
 };

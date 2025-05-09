@@ -33,9 +33,14 @@ WaterApplication::WaterApplication()
     : Application(1024, 1024, "Water Scene")
     , m_renderer(GetDevice())
     , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
+    , m_reflectionBuffer(std::make_shared<FramebufferObject>())
     , m_play(false)
     , m_timeElapsed(0)
     , m_showType(0)
+    , m_maxDistance(2)
+    , m_resolution(0.3)
+    , m_steps(5)
+    , m_thickness(0.5)
 {
 }
 
@@ -271,14 +276,14 @@ void WaterApplication::InitializeModels()
     loader.SetMaterialProperty(ModelLoader::MaterialProperty::SpecularTexture, "SpecularTexture");
 
     // Load models
-    /*std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
+    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
     std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
-    std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
-    std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
+    //std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
+    //std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
 
     m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));*/
+    //m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
 
     auto waterPlane = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
     auto trans = waterPlane->GetTransform();
@@ -306,6 +311,18 @@ void WaterApplication::InitializeFramebuffers()
     m_sceneFramebuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
     FramebufferObject::Unbind();
 
+    m_reflectiveColorTexture = std::make_shared<Texture2DObject>();
+    m_reflectiveColorTexture->Bind();
+    m_reflectiveColorTexture->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormat::InternalFormatSRGBA8);
+    m_reflectiveColorTexture->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_LINEAR);
+    m_reflectiveColorTexture->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_LINEAR);
+    Texture2DObject::Unbind();
+
+    m_reflectionBuffer->Bind();
+    m_reflectionBuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_reflectiveColorTexture);
+    m_reflectionBuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
+    FramebufferObject::Unbind();
+
 }
 
 void WaterApplication::InitializeRenderer()
@@ -323,9 +340,12 @@ void WaterApplication::InitializeRenderer()
         m_deferredMaterial->SetUniformValue("NormalTexture", gbufferRenderPass->GetNormalTexture());
         m_deferredMaterial->SetUniformValue("OthersTexture", gbufferRenderPass->GetOthersTexture());
         m_deferredMaterial->SetUniformValue("ShowType", m_showType);
+    
 
-        // Get the depth texture from the gbuffer pass - This could be reworked
+        // Save some gbuffer textures for later
         m_depthTexture = gbufferRenderPass->GetDepthTexture();
+        m_normalTexture = gbufferRenderPass->GetNormalTexture();
+        m_otherTexture = gbufferRenderPass->GetOthersTexture();
 
         // Add the render passes
         m_renderer.AddRenderPass(std::move(gbufferRenderPass));
@@ -335,13 +355,62 @@ void WaterApplication::InitializeRenderer()
     // Initialize the framebuffers and the textures they use
     InitializeFramebuffers();
 
+    m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture);
+    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_ssrMaterial, m_reflectionBuffer));
+
     // Skybox pass
-    m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
+    //m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
 
     // Final pass
-    // (todo) 09.1: Replace with a new m_composeMaterial, using a new shader
-    std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_sceneTexture);
+    //m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture);
+    std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_reflectiveColorTexture);
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_renderer.GetDefaultFramebuffer()));
+}
+
+std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture)
+{
+    std::vector<const char*> vertexShaderPaths;
+    vertexShaderPaths.push_back("shaders/version330.glsl");
+    vertexShaderPaths.push_back("shaders/renderer/fullscreen.vert");
+    Shader vertexShader = ShaderLoader(Shader::VertexShader).Load(vertexShaderPaths);
+
+    std::vector<const char*> fragmentShaderPaths;
+    fragmentShaderPaths.push_back("shaders/version330.glsl");
+    fragmentShaderPaths.push_back("shaders/utils.glsl");
+    fragmentShaderPaths.push_back("shaders/ssr.frag");
+    Shader fragmentShader = ShaderLoader(Shader::FragmentShader).Load(fragmentShaderPaths);
+
+    std::shared_ptr<ShaderProgram> shaderProgramPtr = std::make_shared<ShaderProgram>();
+    shaderProgramPtr->Build(vertexShader, fragmentShader);
+
+    // Get transform related uniform locations
+    ShaderProgram::Location projMatrixLocation = shaderProgramPtr->GetUniformLocation("ProjectionMatrix");
+    ShaderProgram::Location invProjMatrixLocation = shaderProgramPtr->GetUniformLocation("InvProjMatrix");
+    ShaderProgram::Location invViewMatrixLocation = shaderProgramPtr->GetUniformLocation("InvViewMatrix");
+
+    // Register shader with renderer
+    m_renderer.RegisterShaderProgram(shaderProgramPtr,
+        [=](const ShaderProgram& shaderProgram, const glm::mat4& worldMatrix, const Camera& camera, bool cameraChanged)
+        {
+            shaderProgram.SetUniform(projMatrixLocation, camera.GetProjectionMatrix());
+            shaderProgram.SetUniform(invProjMatrixLocation, glm::inverse(camera.GetProjectionMatrix()));
+            shaderProgram.SetUniform(invViewMatrixLocation, glm::inverse(camera.GetViewMatrix()));
+        },
+        nullptr
+    );
+
+    // Create material
+    std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgramPtr);
+    material->SetUniformValue("SourceTexture", sourceTexture);
+    material->SetUniformValue("DepthTexture", depthTexture);
+    material->SetUniformValue("NormalTexture", normalTexture);
+
+    material->SetUniformValue("MaxDistance", m_maxDistance);
+    material->SetUniformValue("Resolution", m_resolution);
+    material->SetUniformValue("Steps", m_steps);
+    material->SetUniformValue("Thickness", m_thickness);
+
+    return material;
 }
 
 std::shared_ptr<Material> WaterApplication::CreatePostFXMaterial(const char* fragmentShaderPath, std::shared_ptr<Texture2DObject> sourceTexture)
@@ -402,7 +471,7 @@ void WaterApplication::RenderGUI()
     {
         ImGui::Checkbox("Play", &m_play);
         ImGui::SliderFloat("Time", &m_timeElapsed, 0, _MaxPlaytime);
-        if (ImGui::CollapsingHeader("Rendering Settings"))
+        if (ImGui::CollapsingHeader("Debug Settings"))
         {
             ImGui::Indent();
             if (ImGui::BeginListBox("Show Type"))
@@ -423,14 +492,19 @@ void WaterApplication::RenderGUI()
                     m_showType = 2;
                     m_deferredMaterial->SetUniformValue("ShowType", m_showType);
                 }
-                if (ImGui::Selectable("WorldNormal", m_showType == 3))
+                if (ImGui::Selectable("Depth", m_showType == 3))
                 {
                     m_showType = 3;
                     m_deferredMaterial->SetUniformValue("ShowType", m_showType);
                 }
-                if (ImGui::Selectable("ViewNormal", m_showType == 4))
+                if (ImGui::Selectable("WorldNormal", m_showType == 4))
                 {
                     m_showType = 4;
+                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
+                }
+                if (ImGui::Selectable("ViewNormal", m_showType == 5))
+                {
+                    m_showType = 5;
                     m_deferredMaterial->SetUniformValue("ShowType", m_showType);
                 }
                 ImGui::EndListBox();
@@ -438,6 +512,29 @@ void WaterApplication::RenderGUI()
             ImGui::Unindent();
         }
         m_waterManager->RenderGUI(m_imGui);
+
+        if (ImGui::CollapsingHeader("SSR Settings"))
+        {
+            ImGui::Indent();
+            if (ImGui::DragFloat("Max distance", &m_maxDistance, 1.0f, 0.0f))
+            {
+                m_ssrMaterial->SetUniformValue("MaxDistance", m_maxDistance);
+            }
+            if (ImGui::DragFloat("Resolution", &m_resolution, 0.1f, 0.0f))
+            {
+                m_ssrMaterial->SetUniformValue("Resolution", m_resolution);
+            }
+            if (ImGui::DragInt("Steps", &m_steps, 1.0f, 0.0))
+            {
+                m_ssrMaterial->SetUniformValue("Steps", m_steps);
+            }
+            if (ImGui::DragFloat("Thickness", &m_thickness, 0.1f, 0.0f))
+            {
+                m_ssrMaterial->SetUniformValue("Thickness", m_thickness);
+            }
+
+            ImGui::Unindent();
+        }
     }
 
     m_imGui.EndFrame();

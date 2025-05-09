@@ -38,7 +38,7 @@ void main()
 		data.metalness = others.z;
 
 		// Compute lighting
-		vec3 lighting = ComputeLighting(position, data, viewDir, true);
+		vec3 lighting = ComputeLighting(position, data, viewDir, false);
 
 		if(ShowType == 0)
 			FragColor = vec4(lighting, 1.0f);
@@ -47,7 +47,9 @@ void main()
 		else if (ShowType == 2)
 			FragColor = vec4(position, 1.0f);
 		else if (ShowType == 3)
-			FragColor = vec4(normalize(normal), 1.0f);
+			FragColor = vec4(texture(DepthTexture, TexCoord).r, 1, 1, 1.0f);
 		else if (ShowType == 4)
+			FragColor = vec4(normalize(normal), 1.0f);
+		else if (ShowType == 5)
 			FragColor = vec4(GetImplicitNormal(texture(NormalTexture, TexCoord).xy), 1.0f);
 }

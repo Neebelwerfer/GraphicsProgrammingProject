@@ -52,6 +52,22 @@ vec3 SampleDerivativeMap(sampler2D derivativeMap, vec2 texCoord)
 	return dh;
 }
 
+vec3 SampleNormalMapScaled(sampler2D normalTexture, vec2 texCoord, vec3 normal, vec3 tangent, vec3 bitangent, float scale)
+{
+	// Read normalTexture
+	vec2 normalMap = texture(normalTexture, texCoord).xy * 2 - vec2(1);
+	normalMap *= scale;
+
+	// Get implicit Z component
+	vec3 normalTangentSpace = vec3(normalMap.xy, sqrt(max(0.0, 1.0 - dot(normalMap.xy, normalMap.xy))));
+
+	// Create tangent space matrix
+	mat3 tangentMatrix = mat3(tangent, bitangent, normal);
+
+	// Return matrix in world space
+	return normalize(tangentMatrix * normalTangentSpace);
+}
+
 //
 vec3 SampleNormalMap(sampler2D normalTexture, vec2 texCoord, vec3 normal, vec3 tangent, vec3 bitangent)
 {
