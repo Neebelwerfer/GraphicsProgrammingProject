@@ -49,6 +49,13 @@ vec3 ComputeLight(SurfaceData data, vec3 viewDir, vec3 position)
 	return light * LightColor * attenuation;
 }
 
+vec3 ComputeIndirectLighting(SurfaceData data, vec3 viewDir)
+{
+	vec3 diffuseIndirect = ComputeDiffuseIndirectLighting(data);
+	vec3 specularIndirect = ComputeSpecularIndirectLighting(data, viewDir);
+	return CombineIndirectLighting(diffuseIndirect, specularIndirect, data, viewDir);
+}
+
 vec3 ComputeLighting(vec3 position, SurfaceData data, vec3 viewDir, bool indirect)
 {
 	vec3 light = ComputeLight(data, viewDir, position);

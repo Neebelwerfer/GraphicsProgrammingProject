@@ -38,7 +38,7 @@ void main()
 		data.metalness = others.z;
 
 		// Compute lighting
-		vec3 lighting = ComputeLighting(position, data, viewDir, false);
+		vec3 lighting = ComputeLighting(position, data, viewDir, true);
 
 		if(ShowType == 0)
 			FragColor = vec4(lighting, 1.0f);

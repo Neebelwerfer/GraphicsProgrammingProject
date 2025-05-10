@@ -78,8 +78,10 @@ void main()
 	float depth = Thickness;
 
 	vec3 positionTo = positionFrom;
+	bool outBounds = false;
 
 	//First Pass
+	//Lets see if there is a hit at all
 	float i = 0;
 	for (i = 0; i < int(delta); ++i)
 	{
@@ -100,8 +102,8 @@ void main()
 		}
 		else if(uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
 		{
-			FragColor = vec4(0);
-			return;
+			uv = vec4(0);
+			break;
 		}
 		else 
 		{
@@ -113,6 +115,7 @@ void main()
 	steps *= hit0;
 
 	//Second Pass
+	//If there is a hit, lets iterate around the area to find a more precise hit
 	for (i = 0; i < steps; ++i)
 	{
 		frag = mix(startFrag.xy, endFrag.xy, search1);
@@ -145,5 +148,5 @@ void main()
 	visibility = clamp(visibility, 0, 1);
 	uv.ba = vec2(visibility);
 	
-	FragColor = vec4(mix(vec3(0), texture(SourceTexture, uv.xy).rgb, visibility), 1);//vec4(vec3(visibility), 1.0);
+	FragColor = vec4(mix(vec3(0), texture(SourceTexture, uv.xy).rgb, visibility), visibility);
 }

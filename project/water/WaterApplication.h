@@ -33,7 +33,7 @@ private:
     void InitializeRenderer();
 
     std::shared_ptr<Material> CreatePostFXMaterial(const char* fragmentShaderPath, std::shared_ptr<Texture2DObject> sourceTexture = nullptr);
-    std::shared_ptr<Material> CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture);
+    std::shared_ptr<Material> CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture, std::shared_ptr<Texture2DObject> otherTexture);
 
     Renderer::UpdateTransformsFunction GetFullscreenTransformFunction(std::shared_ptr<ShaderProgram> shaderProgramPtr) const;
 
@@ -55,13 +55,20 @@ private:
     // Time
     float m_timeElapsed;
     bool m_play;
-    int m_showType;
 
     // SSR Properties
     float m_maxDistance;
     float m_resolution;
     int   m_steps;
     float m_thickness;
+
+    // Other Properties
+    int m_showType;
+
+    // Blur Properties
+    int m_blurIterations;
+    std::array<std::shared_ptr<FramebufferObject>, 2> m_tempFramebuffers;
+    std::array<std::shared_ptr<Texture2DObject>, 2> m_tempTextures;
 
     // Skybox texture
     std::shared_ptr<TextureCubemapObject> m_skyboxTexture;

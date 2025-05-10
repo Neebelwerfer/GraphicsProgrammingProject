@@ -37,10 +37,11 @@ WaterApplication::WaterApplication()
     , m_play(false)
     , m_timeElapsed(0)
     , m_showType(0)
-    , m_maxDistance(0)
-    , m_resolution(0.3)
-    , m_steps(5)
-    , m_thickness(0.5)
+    , m_maxDistance(10)
+    , m_resolution(0.5)
+    , m_steps(15)
+    , m_thickness(0.3)
+    , m_blurIterations(1)
 {
 }
 
@@ -278,10 +279,10 @@ void WaterApplication::InitializeModels()
     // Load models
     //std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
     //std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
-    //std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
+    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
     std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
 
-    //m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
     //m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
 
@@ -323,6 +324,23 @@ void WaterApplication::InitializeFramebuffers()
     m_reflectionBuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
     FramebufferObject::Unbind();
 
+    for (int i = 0; i < m_tempFramebuffers.size(); ++i)
+    {
+        m_tempTextures[i] = std::make_shared<Texture2DObject>();
+        m_tempTextures[i]->Bind();
+        m_tempTextures[i]->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormat::InternalFormatSRGBA8);
+        m_tempTextures[i]->SetParameter(TextureObject::ParameterEnum::WrapS, GL_CLAMP_TO_EDGE);
+        m_tempTextures[i]->SetParameter(TextureObject::ParameterEnum::WrapT, GL_CLAMP_TO_EDGE);
+        m_tempTextures[i]->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_LINEAR);
+        m_tempTextures[i]->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_LINEAR);
+
+        m_tempFramebuffers[i] = std::make_shared<FramebufferObject>();
+        m_tempFramebuffers[i]->Bind();
+        m_tempFramebuffers[i]->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_tempTextures[i]);
+        m_tempFramebuffers[i]->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
+    }
+    Texture2DObject::Unbind();
+    FramebufferObject::Unbind();
 }
 
 void WaterApplication::InitializeRenderer()
@@ -355,19 +373,38 @@ void WaterApplication::InitializeRenderer()
     // Initialize the framebuffers and the textures they use
     InitializeFramebuffers();
 
-    m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture);
+    m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture, m_otherTexture);
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_ssrMaterial, m_reflectionBuffer));
+
+    //Copy the reflections into temp buffers for blurring
+    std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_reflectiveColorTexture);
+    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_tempFramebuffers[0]));
+
+    std::shared_ptr<Material> blurHorizontalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[0]);
+    blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(1.0f / width, 0.0f));
+
+    std::shared_ptr<Material> blurVerticalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[1]);
+    blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / height));
+
+    for (int i = 0; i < m_blurIterations; ++i)
+    {
+        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(blurHorizontalMaterial, m_tempFramebuffers[1]));
+        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(blurVerticalMaterial, m_tempFramebuffers[0]));
+    }
 
     // Skybox pass
     //m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
 
     // Final pass
     //m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture);
-    std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_reflectiveColorTexture);
-    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_renderer.GetDefaultFramebuffer()));
+    std::shared_ptr<Material> composeMaterial = CreatePostFXMaterial("shaders/postfx/compose.frag", m_sceneTexture);
+    composeMaterial->SetUniformValue("ReflectiveTexture", m_reflectiveColorTexture);
+    composeMaterial->SetUniformValue("BlurReflectiveTexture", m_tempTextures[0]);
+    composeMaterial->SetUniformValue("SpecularTexture", m_otherTexture);
+    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(composeMaterial, m_renderer.GetDefaultFramebuffer()));
 }
 
-std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture)
+std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture, std::shared_ptr<Texture2DObject> otherTexture)
 {
     std::vector<const char*> vertexShaderPaths;
     vertexShaderPaths.push_back("shaders/version330.glsl");
@@ -404,6 +441,7 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     material->SetUniformValue("SourceTexture", sourceTexture);
     material->SetUniformValue("DepthTexture", depthTexture);
     material->SetUniformValue("NormalTexture", normalTexture);
+    material->SetUniformValue("SpecularTexture", otherTexture);
 
     material->SetUniformValue("MaxDistance", m_maxDistance);
     material->SetUniformValue("Resolution", m_resolution);
