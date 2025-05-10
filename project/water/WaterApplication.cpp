@@ -393,7 +393,7 @@ void WaterApplication::InitializeRenderer()
     }
 
     // Skybox pass
-    //m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture));
+    m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture, m_sceneFramebuffer));
 
     // Final pass
     //m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture);

@@ -6,8 +6,9 @@
 #include <ituGL/asset/ShaderLoader.h>
 #include <ituGL/texture/TextureCubemapObject.h>
 
-SkyboxRenderPass::SkyboxRenderPass(std::shared_ptr<TextureCubemapObject> texture)
-    : m_texture(texture)
+SkyboxRenderPass::SkyboxRenderPass(std::shared_ptr<TextureCubemapObject> texture, std::shared_ptr<const FramebufferObject> targetFramebuffer)
+    : RenderPass(targetFramebuffer)
+    , m_texture(texture)
     , m_cameraPositionLocation(-1)
     , m_invViewProjMatrixLocation(-1)
     , m_skyboxTextureLocation(-1)

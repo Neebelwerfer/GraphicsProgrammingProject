@@ -93,6 +93,9 @@ void GBufferRenderPass::Render()
     // for all drawcalls
     for (const Renderer::DrawcallInfo& drawcallInfo : drawcallCollection)
     {
+        if (drawcallInfo.material.GetBlendEquationAlpha() != Material::BlendEquation::None)
+            continue;
+
         assert(drawcallInfo.material.GetBlendEquationColor() == Material::BlendEquation::None);
         assert(drawcallInfo.material.GetBlendEquationAlpha() == Material::BlendEquation::None);
         assert(drawcallInfo.material.GetDepthWrite());
