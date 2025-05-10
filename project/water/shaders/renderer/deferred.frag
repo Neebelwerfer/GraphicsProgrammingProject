@@ -38,7 +38,8 @@ void main()
 		data.metalness = others.z;
 
 		// Compute lighting
-		vec3 lighting = ComputeLighting(position, data, viewDir, true);
+		// No indirect ligthning since we are going to use SSR/Environment map blending later
+		vec3 lighting = ComputeLighting(position, data, viewDir, false);
 
 		if(ShowType == 0)
 			FragColor = vec4(lighting, 1.0f);

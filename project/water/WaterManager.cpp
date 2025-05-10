@@ -14,6 +14,9 @@ WaterManager::WaterManager(Renderer& renderer, float& time)
     , m_flowOffset(-0.5f)
     , m_heightScale(0.1f)
     , m_heightScaleModulated(9)
+    , m_ambientOcclusion(1.0)
+    , m_roughness(0.0)
+    , m_metalness(0.0)
 {
     InitializeWaterMaterial(renderer, time);
     LoadModel();
@@ -47,6 +50,17 @@ void WaterManager::RenderGUI(DearImGui& imgui)
 
         if (ImGui::DragFloat("Height Scale (Modulated)", &m_heightScaleModulated, 0.5f, 0.0f, 100.f))
             m_waterMaterial->SetUniformValue("HeightScaleModulated", m_heightScaleModulated);
+
+        if (ImGui::CollapsingHeader("Visual Properties"))
+        {
+            if (ImGui::DragFloat("Ambient Occlusion", &m_ambientOcclusion, 0.05, 0.0, 1.0))
+                m_waterMaterial->SetUniformValue("AmbientOcclusion", m_ambientOcclusion);
+            if (ImGui::DragFloat("Roughness", &m_roughness, 0.05, 0.0, 1.0))
+                m_waterMaterial->SetUniformValue("Roughness", m_roughness);
+            if (ImGui::DragFloat("Metalness", &m_metalness, 0.05, 0.0, 1.0))
+                m_waterMaterial->SetUniformValue("Metalness", m_metalness);
+        }
+
         ImGui::Unindent();
     }
 }
@@ -118,6 +132,9 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     waterMaterial->SetUniformValue("FlowOffset", m_flowOffset);
     waterMaterial->SetUniformValue("HeightScale", m_heightScale);
     waterMaterial->SetUniformValue("HeightScaleModulated", m_heightScaleModulated);
+    waterMaterial->SetUniformValue("AmbientOcclusion", m_ambientOcclusion);
+    waterMaterial->SetUniformValue("Roughness", m_roughness);
+    waterMaterial->SetUniformValue("Metalness", m_metalness);
     m_waterMaterial = waterMaterial;
 }
 

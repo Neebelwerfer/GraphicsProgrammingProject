@@ -397,10 +397,20 @@ void WaterApplication::InitializeRenderer()
 
     // Final pass
     //m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture);
-    std::shared_ptr<Material> composeMaterial = CreatePostFXMaterial("shaders/postfx/compose.frag", m_sceneTexture);
+    std::shared_ptr<Material> composeMaterial = CreateCompositeMaterial(m_sceneTexture);
     composeMaterial->SetUniformValue("ReflectiveTexture", m_reflectiveColorTexture);
     composeMaterial->SetUniformValue("BlurReflectiveTexture", m_tempTextures[0]);
     composeMaterial->SetUniformValue("SpecularTexture", m_otherTexture);
+    composeMaterial->SetUniformValue("EnvironmentTexture", m_skyboxTexture);
+    composeMaterial->SetUniformValue("DepthTexture", m_depthTexture);
+    composeMaterial->SetUniformValue("NormalTexture", m_normalTexture);
+
+    m_skyboxTexture->Bind();
+    float maxLod;
+    m_skyboxTexture->GetParameter(TextureObject::ParameterFloat::MaxLod, maxLod);
+    TextureCubemapObject::Unbind();
+    composeMaterial->SetUniformValue("EnvironmentMaxLod", maxLod);
+
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(composeMaterial, m_renderer.GetDefaultFramebuffer()));
 }
 
@@ -436,8 +446,13 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
         nullptr
     );
 
+    ShaderUniformCollection::NameSet filteredUniforms;
+    filteredUniforms.insert("InvProjMatrix");
+    filteredUniforms.insert("InvViewMatrix");
+    filteredUniforms.insert("ProjectionMatrix");
+
     // Create material
-    std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgramPtr);
+    std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
     material->SetUniformValue("SourceTexture", sourceTexture);
     material->SetUniformValue("DepthTexture", depthTexture);
     material->SetUniformValue("NormalTexture", normalTexture);
@@ -447,6 +462,47 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     material->SetUniformValue("Resolution", m_resolution);
     material->SetUniformValue("Steps", m_steps);
     material->SetUniformValue("Thickness", m_thickness);
+
+    return material;
+}
+
+std::shared_ptr<Material> WaterApplication::CreateCompositeMaterial(std::shared_ptr<Texture2DObject> sourceTexture)
+{
+    // We could keep this vertex shader and reuse it, but it looks simpler this way
+    std::vector<const char*> vertexShaderPaths;
+    vertexShaderPaths.push_back("shaders/version330.glsl");
+    vertexShaderPaths.push_back("shaders/renderer/fullscreen.vert");
+    Shader vertexShader = ShaderLoader(Shader::VertexShader).Load(vertexShaderPaths);
+
+    std::vector<const char*> fragmentShaderPaths;
+    fragmentShaderPaths.push_back("shaders/version330.glsl");
+    fragmentShaderPaths.push_back("shaders/utils.glsl");
+    fragmentShaderPaths.push_back("shaders/lambert-ggx.glsl");
+    fragmentShaderPaths.push_back("shaders/lighting.glsl");
+    fragmentShaderPaths.push_back("shaders/postfx/compose.frag");
+    Shader fragmentShader = ShaderLoader(Shader::FragmentShader).Load(fragmentShaderPaths);
+
+    std::shared_ptr<ShaderProgram> shaderProgramPtr = std::make_shared<ShaderProgram>();
+    shaderProgramPtr->Build(vertexShader, fragmentShader);
+
+    ShaderProgram::Location invProjMatrixLocation = shaderProgramPtr->GetUniformLocation("InvProjMatrix");
+    ShaderProgram::Location invViewMatrixLocation = shaderProgramPtr->GetUniformLocation("InvViewMatrix");
+    m_renderer.RegisterShaderProgram(shaderProgramPtr,
+        [=](const ShaderProgram& shaderProgram, const glm::mat4& worldMatrix, const Camera& camera, bool cameraChanged)
+        {
+            shaderProgram.SetUniform(invProjMatrixLocation, glm::inverse(camera.GetProjectionMatrix()));
+            shaderProgram.SetUniform(invViewMatrixLocation, glm::inverse(camera.GetViewMatrix()));
+        },
+        nullptr
+    );
+
+    ShaderUniformCollection::NameSet filteredUniforms;
+    filteredUniforms.insert("InvProjMatrix");
+    filteredUniforms.insert("InvViewMatrix");
+
+    // Create material
+    std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
+    material->SetUniformValue("SourceTexture", sourceTexture);
 
     return material;
 }
@@ -554,7 +610,7 @@ void WaterApplication::RenderGUI()
         if (ImGui::CollapsingHeader("SSR Settings"))
         {
             ImGui::Indent();
-            if (ImGui::DragFloat("Max distance", &m_maxDistance, 1.0f, 0.0f, 20))
+            if (ImGui::DragFloat("Max distance", &m_maxDistance, 1.0f, 0.0f, 100))
             {
                 m_ssrMaterial->SetUniformValue("MaxDistance", m_maxDistance);
             }
@@ -562,11 +618,11 @@ void WaterApplication::RenderGUI()
             {
                 m_ssrMaterial->SetUniformValue("Resolution", m_resolution);
             }
-            if (ImGui::DragInt("Steps", &m_steps, 1.0f, 0.0, 20))
+            if (ImGui::DragInt("Steps", &m_steps, 1.0f, 0.0, 100))
             {
                 m_ssrMaterial->SetUniformValue("Steps", m_steps);
             }
-            if (ImGui::DragFloat("Thickness", &m_thickness, 0.1f, 0.0f, 10.0))
+            if (ImGui::DragFloat("Thickness", &m_thickness, 0.05f, 0.0f, 10.0))
             {
                 m_ssrMaterial->SetUniformValue("Thickness", m_thickness);
             }

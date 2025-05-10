@@ -26,9 +26,10 @@ uniform float FlowOffset;
 uniform float HeightScale;
 uniform float HeightScaleModulated;
 
-//Hard coded Specular property that could be made to an uniform input
-vec4 waterSpecular = vec4(1.33f, 0.0f, 0.0f, 0.0f);
-
+//Visual Properties
+uniform float AmbientOcclusion;
+uniform float Roughness;
+uniform float Metalness;
 
 //Calculate the offset uv coordinates based on certain flow variables and time
 vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB)
@@ -46,6 +47,8 @@ vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling
 
 void main()
 {
+	vec4 waterSpecular = vec4(AmbientOcclusion, Roughness, Metalness, 0.0f);
+
 	//Flow vector describing direction of flow
 	vec3 flowVector = texture(FlowTexture, TexCoord).rgb;
 	float noise = texture(FlowTexture, TexCoord).a;

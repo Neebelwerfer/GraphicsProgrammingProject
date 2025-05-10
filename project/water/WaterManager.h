@@ -32,4 +32,9 @@ private:
 	float m_flowOffset;
 	float m_heightScale;
 	float m_heightScaleModulated;
+
+	//Visual Properties
+	float m_ambientOcclusion;
+	float m_roughness;
+	float m_metalness;
 };

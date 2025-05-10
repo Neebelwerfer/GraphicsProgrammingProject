@@ -78,7 +78,6 @@ void main()
 	float depth = Thickness;
 
 	vec3 positionTo = positionFrom;
-	bool outBounds = false;
 
 	//First Pass
 	//Lets see if there is a hit at all
