@@ -43,16 +43,11 @@ void main()
 	data.ambientOcclusion = specular.x;
 	data.roughness = specular.y;
 	data.metalness = specular.z;
-	
-	vec3 reflectionDir = reflect(-viewDir, normal);
-	float lodLevel = pow(roughness, 0.25f);
-	vec3 envColor = textureLod(EnvironmentTexture, reflectionDir, lodLevel * EnvironmentMaxLod).rgb;
 
 	float ssrBlend = smoothstep(0.05, 0.2, ssrVisibility);
-	vec3 srrMix = mix(reflectiveColor, blurReflectiveColor, roughness).rgb;
-	srrMix *= 100.0;
-	vec3 specularColor = mix(envColor, srrMix, ssrBlend); 
-	specularColor *= GeometrySmith(normal, reflectionDir, viewDir, roughness);
+	vec3 srrMix = mix(reflectiveColor, blurReflectiveColor, roughness).rgb ;
+	vec3 specularColor = srrMix;
+	//specularColor *= GeometrySmith(normal, reflectionDir, viewDir, roughness);
 
 	vec3 diffuseColor = GetAlbedo(data);
 
@@ -61,4 +56,9 @@ void main()
 	FragColor = vec4(specularColor, 1);
 	FragColor = vec4(diffuseColor, 1);
 	FragColor += vec4(lightning, 1);
+
+	vec4 reflection = mix(reflectiveColor, blurReflectiveColor, specular.y) * specular.x;
+
+	FragColor = texture(SourceTexture, TexCoord);
+	FragColor.rgb = mix(FragColor.rgb, srrMix.rgb * data.ambientOcclusion, clamp(ssrVisibility, 0.0, 1.0));
 }

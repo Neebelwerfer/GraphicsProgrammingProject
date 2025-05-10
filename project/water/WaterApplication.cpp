@@ -135,7 +135,7 @@ void WaterApplication::InitializeLights()
     spotLight->SetDirection(glm::vec3(0.0f, -1.0f, 0.0f));
     spotLight->SetIntensity(5);
     spotLight->SetDistanceAttenuation(glm::vec2(5.0f, 10.0f));
-    spotLight->SetAngleAttenuation(glm::vec2(0.0f, 0.3f));
+    spotLight->SetAngleAttenuation(glm::vec2(0.1f, 0.4f));
     m_scene.AddSceneNode(std::make_shared<SceneLight>("spot light", spotLight));
 
     // Create a point light and add it to the scene
@@ -277,14 +277,15 @@ void WaterApplication::InitializeModels()
     loader.SetMaterialProperty(ModelLoader::MaterialProperty::SpecularTexture, "SpecularTexture");
 
     // Load models
-    //std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
-    //std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
+    std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
+    //std::shared_ptr<Model> debugSphere = loader.LoadShared("models/island/low_poly_island.obj");
     std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
     std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
 
     m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
-    //m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
+    //m_scene.AddSceneNode(std::make_shared<SceneModel>("island", debugSphere));
 
     auto waterPlane = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
     auto trans = waterPlane->GetTransform();
@@ -373,30 +374,34 @@ void WaterApplication::InitializeRenderer()
     // Initialize the framebuffers and the textures they use
     InitializeFramebuffers();
 
-    m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture, m_otherTexture);
-    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_ssrMaterial, m_reflectionBuffer));
-
-    //Copy the reflections into temp buffers for blurring
-    std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_reflectiveColorTexture);
-    m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_tempFramebuffers[0]));
-
-    std::shared_ptr<Material> blurHorizontalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[0]);
-    blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(1.0f / width, 0.0f));
-
-    std::shared_ptr<Material> blurVerticalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[1]);
-    blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / height));
-
-    for (int i = 0; i < m_blurIterations; ++i)
+    //SSR passes
     {
-        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(blurHorizontalMaterial, m_tempFramebuffers[1]));
-        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(blurVerticalMaterial, m_tempFramebuffers[0]));
+        //Get the reflection texture
+        m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture, m_otherTexture);
+        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_ssrMaterial, m_reflectionBuffer));
+
+        //Copy the reflections into temp buffers for blurring
+        std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_reflectiveColorTexture);
+        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_tempFramebuffers[0]));
+
+        //Blur the copied reflection texture
+        std::shared_ptr<Material> blurHorizontalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[0]);
+        std::shared_ptr<Material> blurVerticalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[1]);
+
+        blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(1.0f / width, 0.0f));
+        blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / height));
+
+        for (int i = 0; i < m_blurIterations; ++i)
+        {
+            m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(blurHorizontalMaterial, m_tempFramebuffers[1]));
+            m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(blurVerticalMaterial, m_tempFramebuffers[0]));
+        }
     }
 
     // Skybox pass
     m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture, m_sceneFramebuffer));
 
-    // Final pass
-    //m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture);
+    // Final composite pass
     std::shared_ptr<Material> composeMaterial = CreateCompositeMaterial(m_sceneTexture);
     composeMaterial->SetUniformValue("ReflectiveTexture", m_reflectiveColorTexture);
     composeMaterial->SetUniformValue("BlurReflectiveTexture", m_tempTextures[0]);
