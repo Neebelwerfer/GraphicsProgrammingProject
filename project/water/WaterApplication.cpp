@@ -37,7 +37,7 @@ WaterApplication::WaterApplication()
     , m_play(false)
     , m_timeElapsed(0)
     , m_showType(0)
-    , m_maxDistance(2)
+    , m_maxDistance(0)
     , m_resolution(0.3)
     , m_steps(5)
     , m_thickness(0.5)
@@ -276,12 +276,12 @@ void WaterApplication::InitializeModels()
     loader.SetMaterialProperty(ModelLoader::MaterialProperty::SpecularTexture, "SpecularTexture");
 
     // Load models
-    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
-    std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
     //std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
     //std::shared_ptr<Model> debugSphere = loader.LoadShared("models/debugSphere/debugSphere.obj");
+    //std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
+    std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
 
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
+    //m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
     //m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
 
@@ -516,19 +516,19 @@ void WaterApplication::RenderGUI()
         if (ImGui::CollapsingHeader("SSR Settings"))
         {
             ImGui::Indent();
-            if (ImGui::DragFloat("Max distance", &m_maxDistance, 1.0f, 0.0f))
+            if (ImGui::DragFloat("Max distance", &m_maxDistance, 1.0f, 0.0f, 20))
             {
                 m_ssrMaterial->SetUniformValue("MaxDistance", m_maxDistance);
             }
-            if (ImGui::DragFloat("Resolution", &m_resolution, 0.1f, 0.0f))
+            if (ImGui::DragFloat("Resolution", &m_resolution, 0.1f, 0.0f, 1.0f))
             {
                 m_ssrMaterial->SetUniformValue("Resolution", m_resolution);
             }
-            if (ImGui::DragInt("Steps", &m_steps, 1.0f, 0.0))
+            if (ImGui::DragInt("Steps", &m_steps, 1.0f, 0.0, 20))
             {
                 m_ssrMaterial->SetUniformValue("Steps", m_steps);
             }
-            if (ImGui::DragFloat("Thickness", &m_thickness, 0.1f, 0.0f))
+            if (ImGui::DragFloat("Thickness", &m_thickness, 0.1f, 0.0f, 10.0))
             {
                 m_ssrMaterial->SetUniformValue("Thickness", m_thickness);
             }

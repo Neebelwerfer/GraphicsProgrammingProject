@@ -25,6 +25,5 @@ void PostFXRenderPass::Render()
     glm::mat4 fullscreenMatrix = glm::inverse(camera.GetViewProjectionMatrix());
     renderer.UpdateTransforms(m_material->GetShaderProgram(), fullscreenMatrix, true);
 
-
     mesh->DrawSubmesh(0);
 }

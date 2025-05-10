@@ -20,28 +20,34 @@ uniform float Thickness;
 
 void main()
 {
+	float steps = Steps;
 	vec2 texSize = textureSize(DepthTexture, 0).xy;
+	vec4 uv = vec4(0);
 
 	vec3 positionFrom = ReconstructViewPosition(DepthTexture, TexCoord, InvProjMatrix);
 	vec3 unitPositionFrom = normalize(positionFrom);
 	vec3 normal = normalize(GetImplicitNormal(texture(NormalTexture, TexCoord).xy));
-	vec3 pivot = normalize(reflect(positionFrom, normal));
+	vec3 pivot = normalize(reflect(unitPositionFrom, normal));
 
-	vec4 startView = vec4(positionFrom.xyz, 1);
-	vec4 endView = vec4(positionFrom.xyz + (pivot * MaxDistance), 1);
+	//positionFrom = positionFrom + pivot * 0.1;
+	//Early stop if depth is far clip
+	if (texture(DepthTexture, TexCoord).r == 1)
+	{
+		FragColor = vec4(0, 0, 0, 1);
+		return;
+	}
+
+	vec4 startView = vec4(positionFrom, 1);
+	vec4 endView = vec4(positionFrom + (pivot * MaxDistance), 1);
 
 	//Convert our start point and end point to screen space coordinates
 	vec4 startFrag = startView;
-
 	//Project frag to screen space
 	startFrag = ProjectionMatrix * startFrag;
-
 	//Perspective Division
 	startFrag.xyz /= startFrag.w;
-
 	//Convert to UV coordinates
 	startFrag.xy = startFrag.xy * 0.5 + 0.5;
-
 	//Convert to fragment coordinates
 	startFrag.xy *= texSize;
 
@@ -52,7 +58,6 @@ void main()
     endFrag.xy = endFrag.xy * 0.5 + 0.5;
 	endFrag.xy *= texSize;
 
-	vec4 uv = vec4(0);
 	vec2 frag = startFrag.xy;
 	uv.xy = frag;
 
@@ -60,7 +65,7 @@ void main()
 	float deltaY = endFrag.y - startFrag.y;
 
 	float useX = abs(deltaX) >= abs(deltaY) ? 1.0 : 0.0;
-	float delta = mix(abs(deltaY), abs(deltaX), useX) * clamp(Resolution, 0.0 ,1.0);
+	float delta = mix(abs(deltaY), abs(deltaX), useX) * clamp(Resolution, 0.0, 1.0);
 	vec2 increment = vec2(deltaX, deltaY) / max(delta, 0.001);
 
 	float search0 = 0;
@@ -69,9 +74,7 @@ void main()
 	int hit0 = 0;
 	int hit1 = 0;
 
-	float steps = Steps;
-
-	float viewDistance = startView.y;
+	float viewDistance = startView.z;
 	float depth = Thickness;
 
 	vec3 positionTo = positionFrom;
@@ -87,13 +90,18 @@ void main()
 		search1 = mix((frag.y - startFrag.y) / deltaY, (frag.x - startFrag.x) / deltaX, useX);
 		search1 = clamp(search1, 0.0, 1.0);
 
-		viewDistance = (startView.y * endView.y) / mix(endView.y, startView.y, search1);
-		depth = viewDistance - positionTo.y;
+		viewDistance = (startView.z * endView.z) / mix(endView.z, startView.z, search1);
+		depth = viewDistance - positionTo.z;
 
-		if (depth > 0 && depth < Thickness)
+		if (depth < 0 && depth > -Thickness)
 		{
 			hit0 = 1;
 			break;
+		}
+		else if(uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+		{
+			FragColor = vec4(0);
+			return;
 		}
 		else 
 		{
@@ -111,10 +119,10 @@ void main()
 		uv.xy = frag / texSize;
 		positionTo = ReconstructViewPosition(DepthTexture, uv.xy, InvProjMatrix);
 
-		viewDistance = (startView.y * endView.y) / mix(endView.y, startView.y, search1);
-		depth = viewDistance - positionTo.y;
+		viewDistance = (startView.z * endView.z) / mix(endView.z, startView.z, search1);
+		depth = viewDistance - positionTo.z;
 
-		if(depth > 0 && depth < Thickness)
+		if(depth < 0 && depth > -Thickness)
 		{
 			hit1 = 1;
 			search1 = search0 + ((search1 - search0) / 2);
@@ -129,17 +137,13 @@ void main()
 
 	float visibility = hit1 
 		* (1 - max(dot(-unitPositionFrom, pivot), 0)) 
-		* (1 - clamp(depth / Thickness, 0, 1)) 
-		* (1 - clamp(length(positionTo - positionFrom), 0, 1)) 
+		* (1 - clamp(depth / -Thickness, 0, 1)) 
+		* (1 - clamp(length(positionTo - positionFrom) / MaxDistance, 0, 1)) 
 		* (uv.x < 0 || uv.x > 1 ? 0 : 1) 
 		* (uv.y < 0 || uv.y > 1 ? 0 : 1);
 
 	visibility = clamp(visibility, 0, 1);
-
-	if(hit1 == 0)
-		uv = vec4(0);
-
 	uv.ba = vec2(visibility);
-
-	FragColor = vec4(texture(SourceTexture, uv.xy).rgb, uv.a);
+	
+	FragColor = vec4(mix(vec3(0), texture(SourceTexture, uv.xy).rgb, visibility), 1);//vec4(vec3(visibility), 1.0);
 }
