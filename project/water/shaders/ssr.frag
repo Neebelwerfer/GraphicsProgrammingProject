@@ -12,6 +12,9 @@ uniform mat4 ProjectionMatrix;
 uniform mat4 InvProjMatrix;
 uniform mat4 InvViewMatrix;
 
+uniform samplerCube EnvironmentTexture;
+uniform float EnvironmentMaxLod;
+
 //SSR Properties
 uniform float MaxDistance;
 uniform float Resolution;
@@ -33,9 +36,9 @@ void main()
 	vec4 endView = vec4(positionFrom + (pivot * MaxDistance), 1);
 
 	//Early stop if depth is far clip
-	if (texture(DepthTexture, TexCoord).r == 1 || dot(normal, vec3(0, 0, 1)) > 0.85 || dot(normal, -unitPositionFrom) > 0.70)
+	if (texture(DepthTexture, TexCoord).r == 1)
 	{
-		FragColor = vec4(0, 0, 0, 1);
+		FragColor = vec4(0, 0, 0, 0);
 		return;
 	}
 
@@ -79,6 +82,11 @@ void main()
 	float depth = Thickness;
 
 	vec3 positionTo = positionFrom;
+
+	if(dot(normal, vec3(0, 0, 1)) > 0.85 || dot(normal, -unitPositionFrom) > 0.70)
+	{
+		delta = 0;
+	}
 
 	//First Pass
 	//Lets see if there is a hit at all
@@ -138,13 +146,12 @@ void main()
 		}
 	}
 
-	float visibility = hit1;
 
-	visibility = clamp(visibility, 0, 1);
+	float visibility = hit1;
 	uv.ba = vec2(visibility);
-	
-	FragColor = vec4(vec3(abs(positionTo.z - positionFrom.z) > 0.001 ? 1 : 0), 1);
-	FragColor = vec4(vec3(abs(positionTo.z - startView.z)), 1);
-	FragColor = vec4(vec3(dot(normal, pivot) * 0.5 + 0.5), 1);
-	FragColor = vec4(mix(vec3(0), texture(SourceTexture, uv.xy).rgb, visibility), visibility);
+
+	vec4 worldReflectiveDir = (InvViewMatrix * vec4(pivot, 0));
+	worldReflectiveDir.z *= -1;
+	vec3 reflectiveColor = mix(textureLod(EnvironmentTexture, worldReflectiveDir.xyz, 0).rgb, texture(SourceTexture, uv.xy).rgb, hit0);
+	FragColor = vec4(reflectiveColor, 1);
 }

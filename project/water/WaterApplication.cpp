@@ -462,6 +462,7 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     material->SetUniformValue("DepthTexture", depthTexture);
     material->SetUniformValue("NormalTexture", normalTexture);
     material->SetUniformValue("SpecularTexture", otherTexture);
+    material->SetUniformValue("EnvironmentTexture", m_skyboxTexture);
 
     material->SetUniformValue("MaxDistance", m_maxDistance);
     material->SetUniformValue("Resolution", m_resolution);

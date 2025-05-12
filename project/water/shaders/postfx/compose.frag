@@ -19,8 +19,6 @@ void main()
 {
 	vec3 position = ReconstructViewPosition(DepthTexture, TexCoord, InvProjMatrix);
 	vec3 normal = GetImplicitNormal(texture(NormalTexture, TexCoord).xy);
-
-	// Compute view vector in view space
 	vec3 viewDir = GetDirection(position, vec3(0));
 
 	// Convert position, normal and view vector to world space
@@ -44,21 +42,15 @@ void main()
 	data.roughness = specular.y;
 	data.metalness = specular.z;
 
-	float ssrBlend = smoothstep(0.05, 0.2, ssrVisibility);
-	vec3 srrMix = mix(reflectiveColor, blurReflectiveColor, roughness).rgb ;
-	vec3 specularColor = srrMix;
-	//specularColor *= GeometrySmith(normal, reflectionDir, viewDir, roughness);
+	vec3 reflectionDir = reflect(-viewDir, data.normal);
+	
+	vec3 diffuseColor = blurReflectiveColor.rgb * GetAlbedo(data);
 
-	vec3 diffuseColor = GetAlbedo(data);
+	vec3 specularColor = mix(reflectiveColor, blurReflectiveColor, roughness).rgb;
+	specularColor *= GeometrySmith(normal, reflectionDir, viewDir, roughness);
 
 	vec3 lightning = CombineIndirectLighting(diffuseColor, specularColor, data, viewDir);
 
-	FragColor = vec4(specularColor, 1);
-	FragColor = vec4(diffuseColor, 1);
-	FragColor += vec4(lightning, 1);
-
-	vec4 reflection = mix(reflectiveColor, blurReflectiveColor, specular.y) * specular.x;
-
 	FragColor = texture(SourceTexture, TexCoord);
-	FragColor.rgb = mix(FragColor.rgb, srrMix.rgb * data.ambientOcclusion, clamp(ssrVisibility, 0.0, 1.0));
+	FragColor += vec4(lightning, 1);
 }
