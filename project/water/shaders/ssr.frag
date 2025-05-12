@@ -29,16 +29,15 @@ void main()
 	vec3 normal = normalize(GetImplicitNormal(texture(NormalTexture, TexCoord).xy));
 	vec3 pivot = normalize(reflect(unitPositionFrom, normal));
 
-	//positionFrom = positionFrom + pivot * 0.1;
+	vec4 startView = vec4(positionFrom, 1);
+	vec4 endView = vec4(positionFrom + (pivot * MaxDistance), 1);
+
 	//Early stop if depth is far clip
-	if (texture(DepthTexture, TexCoord).r == 1)
+	if (texture(DepthTexture, TexCoord).r == 1 || dot(normal, vec3(0, 0, 1)) > 0.85 || dot(normal, -unitPositionFrom) > 0.70)
 	{
 		FragColor = vec4(0, 0, 0, 1);
 		return;
 	}
-
-	vec4 startView = vec4(positionFrom, 1);
-	vec4 endView = vec4(positionFrom + (pivot * MaxDistance), 1);
 
 	//Convert our start point and end point to screen space coordinates
 	vec4 startFrag = startView;
@@ -68,9 +67,11 @@ void main()
 	float delta = mix(abs(deltaY), abs(deltaX), useX) * clamp(Resolution, 0.0, 1.0);
 	vec2 increment = vec2(deltaX, deltaY) / max(delta, 0.001);
 
+	//Track our progress along the vector
 	float search0 = 0;
 	float search1 = 0;
 
+	//Track hit in first and second pass respectively
 	int hit0 = 0;
 	int hit1 = 0;
 
@@ -94,14 +95,14 @@ void main()
 		viewDistance = (startView.z * endView.z) / mix(endView.z, startView.z, search1);
 		depth = viewDistance - positionTo.z;
 
-		if (depth < 0 && depth > -Thickness)
-		{
-			hit0 = 1;
-			break;
-		}
-		else if(uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1)
+		if(uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1 || positionTo.z >= 0)
 		{
 			uv = vec4(0);
+			break;
+		}
+		else if (depth < 0 && depth > -Thickness)
+		{
+			hit0 = 1;
 			break;
 		}
 		else 
@@ -137,15 +138,13 @@ void main()
 		}
 	}
 
-	float visibility = hit1 
-		* (1 - max(dot(-unitPositionFrom, pivot), 0)) 
-		* (1 - clamp(depth / -Thickness, 0, 1)) 
-		* (1 - clamp(length(positionTo - positionFrom) / MaxDistance, 0, 1)) 
-		* (uv.x < 0 || uv.x > 1 ? 0 : 1) 
-		* (uv.y < 0 || uv.y > 1 ? 0 : 1);
+	float visibility = hit1;
 
 	visibility = clamp(visibility, 0, 1);
 	uv.ba = vec2(visibility);
 	
+	FragColor = vec4(vec3(abs(positionTo.z - positionFrom.z) > 0.001 ? 1 : 0), 1);
+	FragColor = vec4(vec3(abs(positionTo.z - startView.z)), 1);
+	FragColor = vec4(vec3(dot(normal, pivot) * 0.5 + 0.5), 1);
 	FragColor = vec4(mix(vec3(0), texture(SourceTexture, uv.xy).rgb, visibility), visibility);
 }
