@@ -10,10 +10,6 @@ uniform sampler2D SourceTexture;
 uniform sampler2D NormalTexture;
 uniform mat4 ProjectionMatrix;
 uniform mat4 InvProjMatrix;
-uniform mat4 InvViewMatrix;
-
-uniform samplerCube EnvironmentTexture;
-uniform float EnvironmentMaxLod;
 
 //SSR Properties
 uniform float MaxDistance;
@@ -83,7 +79,7 @@ void main()
 
 	vec3 positionTo = positionFrom;
 
-	if(dot(normal, vec3(0, 0, 1)) > 0.85 || dot(normal, -unitPositionFrom) > 0.70)
+	if(dot(normal, vec3(0, 0, 1)) > 0.85 || dot(normal, -unitPositionFrom) > 0.9)
 	{
 		delta = 0;
 	}
@@ -146,12 +142,6 @@ void main()
 		}
 	}
 
-
-	float visibility = hit1;
-	uv.ba = vec2(visibility);
-
-	vec4 worldReflectiveDir = (InvViewMatrix * vec4(pivot, 0));
-	worldReflectiveDir.z *= -1;
-	vec3 reflectiveColor = mix(textureLod(EnvironmentTexture, worldReflectiveDir.xyz, 0).rgb, texture(SourceTexture, uv.xy).rgb, hit0);
-	FragColor = vec4(reflectiveColor, 1);
+	vec3 reflectiveColor = mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit0);
+	FragColor = vec4(reflectiveColor, hit1);
 }

@@ -41,7 +41,7 @@ WaterApplication::WaterApplication()
     , m_resolution(0.5)
     , m_steps(15)
     , m_thickness(0.3)
-    , m_blurIterations(1)
+    , m_blurIterations(5)
 {
 }
 
@@ -388,8 +388,8 @@ void WaterApplication::InitializeRenderer()
         std::shared_ptr<Material> blurHorizontalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[0]);
         std::shared_ptr<Material> blurVerticalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[1]);
 
-        blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(1.0f / width, 0.0f));
-        blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / height));
+        blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(6.0f / width, 0.0f));
+        blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 6.0f / height));
 
         for (int i = 0; i < m_blurIterations; ++i)
         {
@@ -446,7 +446,6 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
         {
             shaderProgram.SetUniform(projMatrixLocation, camera.GetProjectionMatrix());
             shaderProgram.SetUniform(invProjMatrixLocation, glm::inverse(camera.GetProjectionMatrix()));
-            shaderProgram.SetUniform(invViewMatrixLocation, glm::inverse(camera.GetViewMatrix()));
         },
         nullptr
     );
@@ -462,7 +461,6 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     material->SetUniformValue("DepthTexture", depthTexture);
     material->SetUniformValue("NormalTexture", normalTexture);
     material->SetUniformValue("SpecularTexture", otherTexture);
-    material->SetUniformValue("EnvironmentTexture", m_skyboxTexture);
 
     material->SetUniformValue("MaxDistance", m_maxDistance);
     material->SetUniformValue("Resolution", m_resolution);

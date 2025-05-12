@@ -41,6 +41,7 @@ void main()
 		// No indirect ligthning since we are going to use SSR/Environment map blending later
 		vec3 lighting = ComputeLighting(position, data, viewDir, false);
 
+		// Different options for some debug visuals
 		if(ShowType == 0)
 			FragColor = vec4(lighting, 1.0f);
 		else if (ShowType == 1)
