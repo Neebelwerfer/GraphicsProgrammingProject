@@ -139,6 +139,8 @@ std::shared_ptr<Material> ModelLoader::GenerateMaterial(const aiMaterial& materi
 {
     std::shared_ptr<Material> material = std::make_shared<Material>(*m_referenceMaterial);
     float value;
+    glm::vec3 HaveTextures(0);
+
     for (auto& materialPropertyPair : m_materialPropertyMap)
     {
         aiColor3D color;
@@ -171,20 +173,24 @@ std::shared_ptr<Material> ModelLoader::GenerateMaterial(const aiMaterial& materi
             }
             break;
         case MaterialProperty::DiffuseTexture:
-            LoadTexture(materialData, aiTextureType_DIFFUSE, *material, location, TextureObject::FormatRGB, TextureObject::InternalFormatSRGB8);
+            if(LoadTexture(materialData, aiTextureType_DIFFUSE, *material, location, TextureObject::FormatRGB, TextureObject::InternalFormatSRGB8))
+                HaveTextures.x = 1;
             break;
         case MaterialProperty::NormalTexture:
-            LoadTexture(materialData, aiTextureType_NORMALS, *material, location, TextureObject::FormatRGB, TextureObject::InternalFormatRGB8);
+            if(LoadTexture(materialData, aiTextureType_NORMALS, *material, location, TextureObject::FormatRGB, TextureObject::InternalFormatRGB8))
+                HaveTextures.y = 1;
             break;
         case MaterialProperty::SpecularTexture:
-            LoadTexture(materialData, aiTextureType_SHININESS, *material, location, TextureObject::FormatRGB, TextureObject::InternalFormatSRGB8);
+            if(LoadTexture(materialData, aiTextureType_SHININESS, *material, location, TextureObject::FormatRGB, TextureObject::InternalFormatSRGB8))
+                HaveTextures.z = 1;
             break;
         }
     }
+    material->SetUniformValue("HaveTextures", HaveTextures);
     return material;
 }
 
-void ModelLoader::LoadTexture(const aiMaterial& materialData, int textureTypeValue, Material& material, ShaderProgram::Location location,
+bool ModelLoader::LoadTexture(const aiMaterial& materialData, int textureTypeValue, Material& material, ShaderProgram::Location location,
     TextureObject::Format format, TextureObject::InternalFormat internalFormat) const
 {
     aiTextureType textureType = static_cast<aiTextureType>(textureTypeValue);
@@ -199,8 +205,10 @@ void ModelLoader::LoadTexture(const aiMaterial& materialData, int textureTypeVal
             m_textureLoader.SetInternalFormat(internalFormat);
             std::shared_ptr<Texture2DObject> texture = m_textureLoader.LoadShared(texturePath.C_Str());
             material.SetUniformValue(location, texture);
+            return true;
         }
     }
+    return false;
 }
 
 std::vector<GLubyte> ModelLoader::CollectVertexData(const aiMesh& meshData, VertexFormat& vertexFormat, bool interleaved)

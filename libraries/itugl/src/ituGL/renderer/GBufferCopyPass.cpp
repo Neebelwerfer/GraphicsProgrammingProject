@@ -20,7 +20,11 @@ void GBufferCopyPass::Render()
     m_material->Use();
     const Mesh* mesh = &renderer.GetFullscreenMesh();
 
+    // Set to always so we write directly to depth buffer
     glDepthFunc(GL_ALWAYS);
+    
     mesh->DrawSubmesh(0);
+
+    // Reset depth function to default
     glDepthFunc(GL_LESS);
 }

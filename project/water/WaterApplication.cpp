@@ -189,6 +189,7 @@ void WaterApplication::InitializeMaterials()
         // Create material
         m_defaultMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
         m_defaultMaterial->SetUniformValue("Color", glm::vec3(1.0f));
+        m_defaultMaterial->SetUniformValue("HaveTextures", glm::vec3(0));
     }
 
     // Deferred material
@@ -281,14 +282,12 @@ void WaterApplication::InitializeModels()
 
     // Load models
     std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
-    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
-    std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
+    std::shared_ptr<Model> underwaterModel = loader.LoadShared("models/UnderwaterScene/underwater.obj");
 
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("LightHouse", lightHouse));
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("Under Water", underwaterModel));
 
-    auto waterPlane = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
+    auto waterPlane = std::make_shared<SceneModel>("Water", m_waterManager->GetWaterPlane());
     auto trans = waterPlane->GetTransform();
     trans->SetScale(glm::vec3(10, 1, 10));
     m_scene.AddSceneNode(waterPlane);
@@ -390,7 +389,7 @@ void WaterApplication::InitializeRenderer()
     int width, height;
     GetMainWindow().GetDimensions(width, height);
 
-    // Set up deferred passes
+    // Set up deferred passes for opaque items
     {
         std::unique_ptr<GBufferRenderPass> gbufferRenderPass(std::make_unique<GBufferRenderPass>(width, height));
 
@@ -416,17 +415,24 @@ void WaterApplication::InitializeRenderer()
     InitializeFramebuffers();
 
     // Skybox pass
+    // We can do this after the opaque pass since we know there is not going to any other opaque thing infront
     m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture, m_mainSceneFramebuffer));
 
     // Transparency Passes
+    // The goal is to have opaque g-buffer for the forward rendering
+    // and then the full scene g-buffer for the rest of the passes going forward
     {
+        // Copy the opaque gbuffer textures into our fullscene framebruffer
         std::shared_ptr<Material> copyGbuffer = CreatePostFXMaterial("shaders/postfx/copyGBuffer.frag", m_sceneTexture);
         copyGbuffer->SetUniformValue("DepthTexture", m_depthTexture);
         copyGbuffer->SetUniformValue("NormalTexture", m_normalTexture);
         copyGbuffer->SetUniformValue("OtherTexture", m_otherTexture);
         m_renderer.AddRenderPass(std::make_unique<GBufferCopyPass>(copyGbuffer, m_fullSceneFramebuffer));
+
+        // Update the fullscene g-buffer with the transparent data
         m_renderer.AddRenderPass(std::make_unique<GBufferRenderPass>(m_fullSceneFramebuffer, true));
 
+        // Run the forward rendering pass on the opaque data only
         m_renderer.AddRenderPass(std::make_unique<TransparencyPass>(m_mainSceneFramebuffer));
     }
     // SSR passes

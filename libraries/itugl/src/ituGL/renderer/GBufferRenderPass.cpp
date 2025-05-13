@@ -102,18 +102,14 @@ void GBufferRenderPass::Render()
     // for all drawcalls
     for (const Renderer::DrawcallInfo& drawcallInfo : drawcallCollection)
     {
+        // Hacky way to handle transparency
         if (drawcallInfo.material.GetTransparency() && !m_transparencyPass)
             continue;
         else if (!drawcallInfo.material.GetTransparency() && m_transparencyPass)
             continue;
 
-        if (!m_transparencyPass)
-        {
-            assert(drawcallInfo.material.GetBlendEquationColor() == Material::BlendEquation::None);
-            assert(drawcallInfo.material.GetBlendEquationAlpha() == Material::BlendEquation::None);
-        }
-       
-
+        assert(drawcallInfo.material.GetBlendEquationColor() == Material::BlendEquation::None);
+        assert(drawcallInfo.material.GetBlendEquationAlpha() == Material::BlendEquation::None);
         assert(drawcallInfo.material.GetDepthWrite());
 
         // Prepare drawcall (similar to forward)

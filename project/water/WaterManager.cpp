@@ -17,7 +17,7 @@ WaterManager::WaterManager(Renderer& renderer, float& time)
     , m_ambientOcclusion(1.0)
     , m_roughness(0.0)
     , m_metalness(0.0)
-    , m_alpha(1.0)
+    , m_alpha(0.4)
 {
     InitializeWaterMaterial(renderer, time);
     LoadModel();
