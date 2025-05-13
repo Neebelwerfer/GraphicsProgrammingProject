@@ -114,8 +114,8 @@ void WaterApplication::InitializeCamera()
     // Create a scene node for the camera
     std::shared_ptr<SceneCamera> sceneCamera = std::make_shared<SceneCamera>("camera", camera);
     std::shared_ptr<Transform> cameraTransform = sceneCamera->GetTransform();
-    cameraTransform->SetTranslation(glm::vec3(-18, 9, -2));
     cameraTransform->SetRotation(glm::vec3(-0.46, -1.6, 0));
+    cameraTransform->SetTranslation(glm::vec3(-18, 9, -2));
 
     // Add the camera node to the scene
     m_scene.AddSceneNode(sceneCamera);
@@ -282,9 +282,12 @@ void WaterApplication::InitializeModels()
 
     // Load models
     std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
+    auto lightHouseSceneModel = std::make_shared<SceneModel>("LightHouse", lightHouse);
+    lightHouseSceneModel->GetTransform()->SetTranslation(glm::vec3(0.0, -0.5, 0.0));
+
     std::shared_ptr<Model> underwaterModel = loader.LoadShared("models/UnderwaterScene/underwater.obj");
 
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("LightHouse", lightHouse));
+    m_scene.AddSceneNode(lightHouseSceneModel);
     m_scene.AddSceneNode(std::make_shared<SceneModel>("Under Water", underwaterModel));
 
     auto waterPlane = std::make_shared<SceneModel>("Water", m_waterManager->GetWaterPlane());

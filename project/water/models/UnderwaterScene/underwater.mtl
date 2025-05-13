@@ -1,6 +1,81 @@
 # Blender 4.1.1 MTL File: 'None'
 # www.blender.org
 
+newmtl Badan
+Kd 0.000000 0.000000 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 1.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.000000
+aniso 0.000000
+anisor 0.000000
+
+newmtl Corak_Mata
+Kd 0.710553 0.710553 0.710553
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.841116
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.000000
+aniso 0.000000
+anisor 0.000000
+
+newmtl Mata2
+Kd 0.017387 0.012562 0.003590
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 1.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.000000
+aniso 0.000000
+anisor 0.000000
+
+newmtl Mata3
+Kd 0.076574 0.023603 0.008050
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.992455
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.000000
+aniso 0.000000
+anisor 0.000000
+
+newmtl Mata4
+Kd 0.184468 0.184468 0.184468
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.958752
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.000000
+aniso 0.000000
+anisor 0.000000
+
 newmtl Material.026
 Kd 0.800000 0.800000 0.800000
 Ks 1.000000 1.000000 1.000000
@@ -15,6 +90,21 @@ Pc 0.000000
 Pcr 0.030000
 aniso 0.000000
 anisor 0.000000
+
+newmtl Material.031
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 0.500000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.000000
+aniso 0.000000
+anisor 0.000000
+map_Kd shark128.png
 
 newmtl Materiale.018
 Kd 0.020743 0.018999 0.018999
@@ -316,6 +406,21 @@ Pcr 0.000000
 aniso 0.000000
 anisor 0.000000
 
+newmtl Pinggir_Mulut
+Kd 0.000000 0.000000 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 2
+Pr 1.000000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.000000
+aniso 0.000000
+anisor 0.000000
+
 newmtl Ship
 Ks 0.000000 0.000000 0.000000
 Ke 0.000000 0.000000 0.000000
@@ -344,7 +449,7 @@ Pcr 0.030000
 aniso 0.000000
 anisor 0.000000
 map_Kd cannon_diffuse.png
-map_Ns cannon_arm.png
+map_Ks cannon_arm.png
 map_Kn cannon_normal.png
 
 newmtl treasure_chest
@@ -360,5 +465,5 @@ Pcr 0.030000
 aniso 0.000000
 anisor 0.000000
 map_Kd treasure_chest_diffuse.png
-map_Ns treasure_chest_arm.png
+map_Ks treasure_chest_arm.png
 map_Kn treasure_chest_normal.png
