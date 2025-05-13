@@ -17,6 +17,7 @@ WaterManager::WaterManager(Renderer& renderer, float& time)
     , m_ambientOcclusion(1.0)
     , m_roughness(0.0)
     , m_metalness(0.0)
+    , m_alpha(1.0)
 {
     InitializeWaterMaterial(renderer, time);
     LoadModel();
@@ -59,6 +60,8 @@ void WaterManager::RenderGUI(DearImGui& imgui)
                 m_waterMaterial->SetUniformValue("Roughness", m_roughness);
             if (ImGui::DragFloat("Metalness", &m_metalness, 0.05, 0.0, 1.0))
                 m_waterMaterial->SetUniformValue("Metalness", m_metalness);
+            if (ImGui::SliderFloat("Alpha", &m_alpha, 0.0, 1.0))
+                m_waterMaterial->SetUniformValue("Alpha", m_alpha);
         }
 
         ImGui::Unindent();
@@ -101,7 +104,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
             shaderProgram.SetUniform(worldMatrixLocation, worldMatrix);
             shaderProgram.SetUniform(timeLocation, time);
         },
-        nullptr
+        renderer.GetDefaultUpdateLightsFunction(*shaderProgramPtr)
     );
 
     // Filter out uniforms that are not material properties
@@ -135,6 +138,8 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     waterMaterial->SetUniformValue("AmbientOcclusion", m_ambientOcclusion);
     waterMaterial->SetUniformValue("Roughness", m_roughness);
     waterMaterial->SetUniformValue("Metalness", m_metalness);
+    waterMaterial->SetUniformValue("Alpha", m_alpha);
+    waterMaterial->SetTransparency(true);
     m_waterMaterial = waterMaterial;
 }
 

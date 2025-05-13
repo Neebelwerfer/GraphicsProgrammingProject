@@ -30,6 +30,7 @@ uniform float HeightScaleModulated;
 uniform float AmbientOcclusion;
 uniform float Roughness;
 uniform float Metalness;
+uniform float Alpha;
 
 //Calculate the offset uv coordinates based on certain flow variables and time
 vec3 FlowUVW(vec2 uv, vec2 flowVector, vec2 jump, float flowOffset, float tiling, float time, bool flowB)
@@ -83,7 +84,7 @@ void main()
 	derivedNormal.y *= -1;
 	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
 
-	FragAlbedo = vec4(Color * (texA + texB), 1);
+	FragAlbedo = vec4(Color * (texA + texB), Alpha);
 	FragNormal = normalize(derivedNormal).xy;
 	FragNormal = normalize(combinedViewSpaceNormal).xy;
 	FragOthers = waterSpecular;

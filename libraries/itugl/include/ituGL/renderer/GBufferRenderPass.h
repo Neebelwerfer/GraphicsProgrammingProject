@@ -8,6 +8,7 @@ class GBufferRenderPass : public RenderPass
 {
 public:
     GBufferRenderPass(int width, int height, int drawcallCollectionIndex = 0);
+    GBufferRenderPass(std::shared_ptr<const FramebufferObject> framebuffer, bool transparencyPass, int drawcallCollectionIndex = 0);
 
     void Render() override;
 
@@ -22,6 +23,7 @@ private:
 
 private:
     int m_drawcallCollectionIndex;
+    bool m_transparencyPass;
 
     std::shared_ptr<Texture2DObject> m_depthTexture;
     std::shared_ptr<Texture2DObject> m_albedoTexture;

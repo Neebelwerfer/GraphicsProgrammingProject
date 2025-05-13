@@ -9,9 +9,17 @@
 
 GBufferRenderPass::GBufferRenderPass(int width, int height, int drawcallCollectionIndex)
     : m_drawcallCollectionIndex(drawcallCollectionIndex)
+    , m_transparencyPass(false)
 {
     InitTextures(width, height);
     InitFramebuffer();
+}
+
+GBufferRenderPass::GBufferRenderPass(std::shared_ptr<const FramebufferObject> framebuffer, bool transparencyPass, int drawcallCollectionIndex)
+    : m_drawcallCollectionIndex(drawcallCollectionIndex)
+    , m_transparencyPass(transparencyPass)
+{
+    m_targetFramebuffer = framebuffer;
 }
 
 void GBufferRenderPass::InitFramebuffer()
@@ -85,7 +93,8 @@ void GBufferRenderPass::Render()
     const auto& lights = renderer.GetLights();
     const auto& drawcallCollection = renderer.GetDrawcalls(m_drawcallCollectionIndex);
 
-    renderer.GetDevice().Clear(true, Color(0.0f, 0.0f, 0.0f, 1.0f), true, 1.0f);
+    if(!m_transparencyPass)
+        renderer.GetDevice().Clear(true, Color(0.0f, 0.0f, 0.0f, 1.0f), true, 1.0f);
 
     bool wasSRGB = renderer.GetDevice().IsFeatureEnabled(GL_FRAMEBUFFER_SRGB);
     renderer.GetDevice().EnableFeature(GL_FRAMEBUFFER_SRGB);
@@ -93,11 +102,18 @@ void GBufferRenderPass::Render()
     // for all drawcalls
     for (const Renderer::DrawcallInfo& drawcallInfo : drawcallCollection)
     {
-        if (drawcallInfo.material.GetBlendEquationAlpha() != Material::BlendEquation::None)
+        if (drawcallInfo.material.GetTransparency() && !m_transparencyPass)
+            continue;
+        else if (!drawcallInfo.material.GetTransparency() && m_transparencyPass)
             continue;
 
-        assert(drawcallInfo.material.GetBlendEquationColor() == Material::BlendEquation::None);
-        assert(drawcallInfo.material.GetBlendEquationAlpha() == Material::BlendEquation::None);
+        if (!m_transparencyPass)
+        {
+            assert(drawcallInfo.material.GetBlendEquationColor() == Material::BlendEquation::None);
+            assert(drawcallInfo.material.GetBlendEquationAlpha() == Material::BlendEquation::None);
+        }
+       
+
         assert(drawcallInfo.material.GetDepthWrite());
 
         // Prepare drawcall (similar to forward)

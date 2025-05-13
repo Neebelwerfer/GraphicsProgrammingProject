@@ -37,4 +37,5 @@ private:
 	float m_ambientOcclusion;
 	float m_roughness;
 	float m_metalness;
+	float m_alpha;
 };

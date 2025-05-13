@@ -20,7 +20,7 @@ void PostFXRenderPass::Render()
     m_material->Use();
     const Mesh* mesh = &renderer.GetFullscreenMesh();
 
-    //Lets make sure to update the camera projections TODO: Make another render pass class for this
+    //Lets make sure to update the camera projections
     const Camera& camera = renderer.GetCurrentCamera();
     glm::mat4 fullscreenMatrix = glm::inverse(camera.GetViewProjectionMatrix());
     renderer.UpdateTransforms(m_material->GetShaderProgram(), fullscreenMatrix, true);

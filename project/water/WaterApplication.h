@@ -82,11 +82,15 @@ private:
     std::shared_ptr<Material> m_ssrMaterial;
 
     // Framebuffers
-    std::shared_ptr<FramebufferObject> m_sceneFramebuffer;
+    std::shared_ptr<FramebufferObject> m_mainSceneFramebuffer;
     std::shared_ptr<Texture2DObject> m_sceneTexture;
     std::shared_ptr<Texture2DObject> m_depthTexture;
     std::shared_ptr<Texture2DObject> m_normalTexture;
     std::shared_ptr<Texture2DObject> m_otherTexture;
+
+    std::shared_ptr<FramebufferObject> m_fullSceneFramebuffer;
+    std::array<std::shared_ptr<Texture2DObject>, 4> m_fullSceneTextures;
+
 
     std::shared_ptr<FramebufferObject> m_reflectionBuffer;
     std::shared_ptr<Texture2DObject> m_reflectiveColorTexture;

@@ -61,5 +61,5 @@ void main()
 	vec3 fresnel = FresnelSchlick(GetReflectance(data), viewDir, data.normal);
 
 	FragColor = texture(SourceTexture, TexCoord);
-	FragColor += vec4(lightning, 1);
+	FragColor.rgb += lightning;
 }
