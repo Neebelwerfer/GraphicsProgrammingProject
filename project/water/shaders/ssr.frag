@@ -161,6 +161,5 @@ void main()
 		}
 	}
 
-	vec3 reflectiveColor = mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit0);
-	FragColor = vec4(reflectiveColor, hit1);
+	FragColor = vec4(mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit0), hit1);
 }
