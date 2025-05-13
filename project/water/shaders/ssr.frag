@@ -31,8 +31,10 @@ void main()
 	vec4 startView = vec4(positionFrom, 1);
 	vec4 endView = vec4(positionFrom + (pivot * MaxDistance), 1);
 
-	//Early stop if depth is far clip
-	if (texture(DepthTexture, TexCoord).r == 1)
+	// Early stop 
+	// 1. if depth is far clip
+	// 2. if the is near parallel or parallel with the viewing angle
+	if (texture(DepthTexture, TexCoord).r == 1 || dot(normal, -unitPositionFrom) > 0.9)
 	{
 		FragColor = vec4(0, 0, 0, 0);
 		return;
@@ -78,11 +80,8 @@ void main()
 	float depth = Thickness;
 
 	vec3 positionTo = positionFrom;
-
-	if(dot(normal, vec3(0, 0, 1)) > 0.85 || dot(normal, -unitPositionFrom) > 0.9)
-	{
-		delta = 0;
-	}
+	vec3 normalTo = normal;
+	float minimumDepth = 0;
 
 	//First Pass
 	//Lets see if there is a hit at all
@@ -92,6 +91,11 @@ void main()
 		frag += increment;
 		uv.xy = frag / texSize;
 		positionTo = ReconstructViewPosition(DepthTexture, uv.xy, InvProjMatrix);
+		normalTo = normalize(GetImplicitNormal(texture(NormalTexture, uv.xy).xy));
+
+		// Scaling minimun depth difference based on if the normal of start position and the normal of sampled position is near parallel
+		// Hack to remove self reflection on a plane
+		minimumDepth = mix(0, Thickness, dot(normal, normalTo) < 0.9 ? 0.0 : 1.0);
 
 		search1 = mix((frag.y - startFrag.y) / deltaY, (frag.x - startFrag.x) / deltaX, useX);
 		search1 = clamp(search1, 0.0, 1.0);
@@ -104,7 +108,7 @@ void main()
 			uv = vec4(0);
 			break;
 		}
-		else if (depth < 0 && depth > -Thickness)
+		else if (depth < 0 && depth > -Thickness && abs(positionFrom.z - positionTo.z) > minimumDepth)
 		{
 			hit0 = 1;
 			break;
@@ -142,6 +146,7 @@ void main()
 		}
 	}
 
+	FragColor = vec4(vec3(1 - search1), hit1);
 	vec3 reflectiveColor = mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit0);
 	FragColor = vec4(reflectiveColor, hit1);
 }

@@ -243,7 +243,7 @@ void WaterApplication::InitializeMaterials()
 
 void WaterApplication::InitializeModels()
 {
-    m_skyboxTexture = TextureCubemapLoader::LoadTextureShared("models/skybox/yoga_studio.hdr", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16F);
+    m_skyboxTexture = TextureCubemapLoader::LoadTextureShared("models/skybox/puresky.hdr", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16F);
 
     m_skyboxTexture->Bind();
     float maxLod;
@@ -466,7 +466,6 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     material->SetUniformValue("Resolution", m_resolution);
     material->SetUniformValue("Steps", m_steps);
     material->SetUniformValue("Thickness", m_thickness);
-
     return material;
 }
 
@@ -630,7 +629,6 @@ void WaterApplication::RenderGUI()
             {
                 m_ssrMaterial->SetUniformValue("Thickness", m_thickness);
             }
-
             ImGui::Unindent();
         }
     }

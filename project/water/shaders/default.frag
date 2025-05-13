@@ -15,6 +15,8 @@ uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
 uniform sampler2D SpecularTexture;
 
+vec4 defaultSpecular = vec4(0.0, 0.5, 0.0, 0);
+
 void main()
 {
 	FragAlbedo = vec4(Color.rgb * texture(ColorTexture, TexCoord).rgb, 1);
