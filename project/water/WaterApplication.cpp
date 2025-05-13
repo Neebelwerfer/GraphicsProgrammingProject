@@ -415,6 +415,9 @@ void WaterApplication::InitializeRenderer()
     // Initialize the framebuffers and the textures they use
     InitializeFramebuffers();
 
+    // Skybox pass
+    m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture, m_mainSceneFramebuffer));
+
     // Transparency Passes
     {
         std::shared_ptr<Material> copyGbuffer = CreatePostFXMaterial("shaders/postfx/copyGBuffer.frag", m_sceneTexture);
@@ -449,9 +452,6 @@ void WaterApplication::InitializeRenderer()
             m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(blurVerticalMaterial, m_tempFramebuffers[0]));
         }
     }
-
-    // Skybox pass
-    m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture, m_mainSceneFramebuffer));
 
     // Final composite pass
     std::shared_ptr<Material> composeMaterial = CreateCompositeMaterial(m_sceneTexture);
