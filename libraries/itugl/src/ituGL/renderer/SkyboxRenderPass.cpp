@@ -40,7 +40,6 @@ void SkyboxRenderPass::Render()
 
     m_shaderProgram.Use();
 
-    const bool wasBlend = renderer.GetDevice().IsFeatureEnabled(GL_BLEND);
     const Camera& camera = renderer.GetCurrentCamera();
     m_shaderProgram.SetUniform(m_cameraPositionLocation, camera.ExtractTranslation());
     m_shaderProgram.SetUniform(m_invViewProjMatrixLocation, glm::inverse(camera.GetViewProjectionMatrix()));
@@ -51,11 +50,8 @@ void SkyboxRenderPass::Render()
 
     const Mesh& fullscreenMesh = renderer.GetFullscreenMesh();
 
-    renderer.GetDevice().EnableFeature(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     fullscreenMesh.DrawSubmesh(0);
     
     // Restore default value
     glDepthFunc(GL_LESS);
-    renderer.GetDevice().SetFeatureEnabled(GL_BLEND, wasBlend);
 }

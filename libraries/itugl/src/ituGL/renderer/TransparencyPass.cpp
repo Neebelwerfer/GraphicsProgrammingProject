@@ -37,6 +37,9 @@ void TransparencyPass::Render()
         std::shared_ptr<const ShaderProgram> shaderProgram = drawcallInfo.material.GetShaderProgram();
 
 
+        auto forwardPass = shaderProgram->GetUniformLocation("ForwardPass");
+        shaderProgram->SetUniform(forwardPass, 1);
+
         //for all lights
         bool first = true;
         unsigned int lightIndex = 0;
@@ -53,7 +56,7 @@ void TransparencyPass::Render()
 
             first = false;
         }
+        shaderProgram->SetUniform(forwardPass, 0);
     }
-
     renderer.GetDevice().SetFeatureEnabled(GL_BLEND, blendEnabled);
 }

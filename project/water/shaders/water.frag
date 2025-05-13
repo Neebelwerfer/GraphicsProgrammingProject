@@ -2,6 +2,7 @@
 in vec3 ViewNormal;
 in vec3 ViewTangent;
 in vec3 ViewBitangent;
+in vec3 ViewPosition;
 in vec2 TexCoord;
 
 //Outputs
@@ -15,7 +16,9 @@ uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
 uniform sampler2D FlowTexture;
 uniform sampler2D DerivativeMap;
+uniform mat4 InvViewMatrix;
 uniform float ElapsedTime;
+uniform int ForwardPass;
 
 //Water properties
 uniform vec2 Jump;
@@ -84,8 +87,35 @@ void main()
 	derivedNormal.y *= -1;
 	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
 
-	FragAlbedo = vec4(Color * (texA + texB), Alpha);
-	FragNormal = normalize(derivedNormal).xy;
-	FragNormal = normalize(combinedViewSpaceNormal).xy;
-	FragOthers = waterSpecular;
+	if(ForwardPass == 0)
+	{
+		FragAlbedo = vec4(Color * (texA + texB), Alpha);
+		FragNormal = normalize(derivedNormal).xy;
+		FragNormal = normalize(combinedViewSpaceNormal).xy;
+		FragOthers = waterSpecular;
+	}
+	else
+	{
+		// Compute view vector in view space
+		vec3 viewDir = GetDirection(ViewPosition, vec3(0));
+
+		// Convert position, normal and view vector to world space
+		vec3 worldNormal = (InvViewMatrix * vec4(combinedViewSpaceNormal, 0)).xyz;
+		vec3 worldPosition = (InvViewMatrix * vec4(ViewPosition, 1)).xyz;
+		viewDir = (InvViewMatrix * vec4(viewDir, 0)).xyz;
+
+		// Set surface material data
+		SurfaceData data;
+		data.normal = worldNormal;
+		data.albedo = Color * (texA + texB);
+		data.ambientOcclusion = waterSpecular.x;
+		data.roughness = waterSpecular.y;
+		data.metalness = waterSpecular.z;
+
+		// Compute lighting
+		// No indirect ligthning since we are going to use SSR/Environment map blending later
+		vec3 lighting = ComputeLighting(worldPosition, data, viewDir, false);
+
+		FragAlbedo = vec4(lighting, Alpha);
+	}
 }

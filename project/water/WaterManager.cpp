@@ -31,6 +31,9 @@ void WaterManager::RenderGUI(DearImGui& imgui)
         if (ImGui::ColorEdit3("Colour", &m_colour[0]))
             m_waterMaterial->SetUniformValue("Color", m_colour);
 
+        if (ImGui::SliderFloat("Alpha", &m_alpha, 0.0, 1.0))
+            m_waterMaterial->SetUniformValue("Alpha", m_alpha);
+
         if (ImGui::DragFloat2("Jump", &m_jump[0], 0.01f, -0.25f, 0.25f))
             m_waterMaterial->SetUniformValue("Jump", m_jump);
 
@@ -60,8 +63,6 @@ void WaterManager::RenderGUI(DearImGui& imgui)
                 m_waterMaterial->SetUniformValue("Roughness", m_roughness);
             if (ImGui::DragFloat("Metalness", &m_metalness, 0.05, 0.0, 1.0))
                 m_waterMaterial->SetUniformValue("Metalness", m_metalness);
-            if (ImGui::SliderFloat("Alpha", &m_alpha, 0.0, 1.0))
-                m_waterMaterial->SetUniformValue("Alpha", m_alpha);
         }
 
         ImGui::Unindent();
@@ -83,6 +84,8 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     std::vector<const char*> fragmentShaderPaths;
     fragmentShaderPaths.push_back("shaders/version330.glsl");
     fragmentShaderPaths.push_back("shaders/utils.glsl");
+    fragmentShaderPaths.push_back("shaders/lambert-ggx.glsl");
+    fragmentShaderPaths.push_back("shaders/lighting.glsl");
     fragmentShaderPaths.push_back("shaders/water.frag");
     Shader fragmentShader = ShaderLoader(Shader::FragmentShader).Load(fragmentShaderPaths);
 
@@ -93,6 +96,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     ShaderProgram::Location worldViewMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldViewMatrix");
     ShaderProgram::Location worldViewProjMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldViewProjMatrix");
     ShaderProgram::Location worldMatrixLocation = shaderProgramPtr->GetUniformLocation("WorldMatrix");
+    ShaderProgram::Location invViewMatrixLocation = shaderProgramPtr->GetUniformLocation("InvViewMatrix");
     ShaderProgram::Location timeLocation = shaderProgramPtr->GetUniformLocation("ElapsedTime");
 
     // Register shader with renderer
@@ -102,6 +106,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
             shaderProgram.SetUniform(worldViewMatrixLocation, camera.GetViewMatrix() * worldMatrix);
             shaderProgram.SetUniform(worldViewProjMatrixLocation, camera.GetViewProjectionMatrix() * worldMatrix);
             shaderProgram.SetUniform(worldMatrixLocation, worldMatrix);
+            shaderProgram.SetUniform(invViewMatrixLocation, glm::inverse(camera.GetViewMatrix()));
             shaderProgram.SetUniform(timeLocation, time);
         },
         renderer.GetDefaultUpdateLightsFunction(*shaderProgramPtr)
@@ -112,6 +117,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     filteredUniforms.insert("WorldViewMatrix");
     filteredUniforms.insert("WorldViewProjMatrix");
     filteredUniforms.insert("WorldMatrix");
+    filteredUniforms.insert("InvViewMatrix");
     filteredUniforms.insert("ElapsedTime");
 
     Texture2DLoader textureLoader;
@@ -139,6 +145,7 @@ void WaterManager::InitializeWaterMaterial(Renderer& renderer, float& time)
     waterMaterial->SetUniformValue("Roughness", m_roughness);
     waterMaterial->SetUniformValue("Metalness", m_metalness);
     waterMaterial->SetUniformValue("Alpha", m_alpha);
+    waterMaterial->SetUniformValue("ForwardPass", 0);
     waterMaterial->SetTransparency(true);
     m_waterMaterial = waterMaterial;
 }
