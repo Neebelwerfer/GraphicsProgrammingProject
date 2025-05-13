@@ -37,7 +37,7 @@ WaterApplication::WaterApplication()
     , m_play(false)
     , m_timeElapsed(0)
     , m_showType(0)
-    , m_maxDistance(10)
+    , m_maxDistance(20)
     , m_resolution(0.5)
     , m_steps(15)
     , m_thickness(0.3)
@@ -278,14 +278,12 @@ void WaterApplication::InitializeModels()
 
     // Load models
     std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
-    //std::shared_ptr<Model> debugSphere = loader.LoadShared("models/island/low_poly_island.obj");
     std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
     std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
 
     m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
     m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
-    //m_scene.AddSceneNode(std::make_shared<SceneModel>("island", debugSphere));
 
     auto waterPlane = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
     auto trans = waterPlane->GetTransform();
@@ -419,6 +417,7 @@ void WaterApplication::InitializeRenderer()
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(composeMaterial, m_renderer.GetDefaultFramebuffer()));
 }
 
+// Material for Screen-Space Reflections
 std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture, std::shared_ptr<Texture2DObject> otherTexture)
 {
     std::vector<const char*> vertexShaderPaths;
@@ -469,6 +468,7 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     return material;
 }
 
+// Material to combine and blend indirect lighting into the scene
 std::shared_ptr<Material> WaterApplication::CreateCompositeMaterial(std::shared_ptr<Texture2DObject> sourceTexture)
 {
     // We could keep this vertex shader and reuse it, but it looks simpler this way
