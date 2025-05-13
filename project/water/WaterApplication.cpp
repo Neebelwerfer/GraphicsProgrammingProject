@@ -21,7 +21,9 @@
 #include <ituGL/renderer/SkyboxRenderPass.h>
 #include <ituGL/renderer/GBufferRenderPass.h>
 #include <ituGL/renderer/DeferredRenderPass.h>
+#include <ituGL/renderer/GBufferCopyPass.h>
 #include <ituGL/renderer/PostFXRenderPass.h>
+#include <ituGL/renderer/TransparencyPass.h>
 #include <ituGL/scene/RendererSceneVisitor.h>
 
 #include <ituGL/scene/ImGuiSceneVisitor.h>
@@ -32,8 +34,9 @@ const float _MaxPlaytime = 60;
 WaterApplication::WaterApplication()
     : Application(1024, 1024, "Water Scene")
     , m_renderer(GetDevice())
-    , m_sceneFramebuffer(std::make_shared<FramebufferObject>())
+    , m_mainSceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_reflectionBuffer(std::make_shared<FramebufferObject>())
+    , m_fullSceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_play(false)
     , m_timeElapsed(0)
     , m_showType(0)
@@ -111,8 +114,8 @@ void WaterApplication::InitializeCamera()
     // Create a scene node for the camera
     std::shared_ptr<SceneCamera> sceneCamera = std::make_shared<SceneCamera>("camera", camera);
     std::shared_ptr<Transform> cameraTransform = sceneCamera->GetTransform();
-    cameraTransform->SetTranslation(glm::vec3(-18, 9, -2));
     cameraTransform->SetRotation(glm::vec3(-0.46, -1.6, 0));
+    cameraTransform->SetTranslation(glm::vec3(-18, 9, -2));
 
     // Add the camera node to the scene
     m_scene.AddSceneNode(sceneCamera);
@@ -186,6 +189,7 @@ void WaterApplication::InitializeMaterials()
         // Create material
         m_defaultMaterial = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
         m_defaultMaterial->SetUniformValue("Color", glm::vec3(1.0f));
+        m_defaultMaterial->SetUniformValue("HaveTextures", glm::vec3(0));
     }
 
     // Deferred material
@@ -278,14 +282,15 @@ void WaterApplication::InitializeModels()
 
     // Load models
     std::shared_ptr<Model> lightHouse = loader.LoadShared("models/Lighthouse/LighthouseScaled.obj");
-    std::shared_ptr<Model> cannonModel = loader.LoadShared("models/cannon/cannon.obj");
-    std::shared_ptr<Model> treasureChestModel = loader.LoadShared("models/treasure_chest/treasure_chest.obj");
+    auto lightHouseSceneModel = std::make_shared<SceneModel>("LightHouse", lightHouse);
+    lightHouseSceneModel->GetTransform()->SetTranslation(glm::vec3(0.0, -0.5, 0.0));
 
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("cannon", cannonModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("treasure_chest", treasureChestModel));
-    m_scene.AddSceneNode(std::make_shared<SceneModel>("lightHouse", lightHouse));
+    std::shared_ptr<Model> underwaterModel = loader.LoadShared("models/UnderwaterScene/underwater.obj");
 
-    auto waterPlane = std::make_shared<SceneModel>("waterPlane", m_waterManager->GetWaterPlane());
+    m_scene.AddSceneNode(lightHouseSceneModel);
+    m_scene.AddSceneNode(std::make_shared<SceneModel>("Under Water", underwaterModel));
+
+    auto waterPlane = std::make_shared<SceneModel>("Water", m_waterManager->GetWaterPlane());
     auto trans = waterPlane->GetTransform();
     trans->SetScale(glm::vec3(10, 1, 10));
     m_scene.AddSceneNode(waterPlane);
@@ -302,26 +307,22 @@ void WaterApplication::InitializeFramebuffers()
     m_sceneTexture->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormat::InternalFormatSRGBA8);
     m_sceneTexture->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_LINEAR);
     m_sceneTexture->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_LINEAR);
-    Texture2DObject::Unbind();
 
     // Scene framebuffer
-    m_sceneFramebuffer->Bind();
-    m_sceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Depth, *m_depthTexture);
-    m_sceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_sceneTexture);
-    m_sceneFramebuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
-    FramebufferObject::Unbind();
+    m_mainSceneFramebuffer->Bind();
+    m_mainSceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Depth, *m_depthTexture);
+    m_mainSceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_sceneTexture);
+    m_mainSceneFramebuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
 
     m_reflectiveColorTexture = std::make_shared<Texture2DObject>();
     m_reflectiveColorTexture->Bind();
     m_reflectiveColorTexture->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormat::InternalFormatSRGBA8);
     m_reflectiveColorTexture->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_LINEAR);
     m_reflectiveColorTexture->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_LINEAR);
-    Texture2DObject::Unbind();
 
     m_reflectionBuffer->Bind();
     m_reflectionBuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_reflectiveColorTexture);
     m_reflectionBuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
-    FramebufferObject::Unbind();
 
     for (int i = 0; i < m_tempFramebuffers.size(); ++i)
     {
@@ -338,8 +339,52 @@ void WaterApplication::InitializeFramebuffers()
         m_tempFramebuffers[i]->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_tempTextures[i]);
         m_tempFramebuffers[i]->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
     }
-    Texture2DObject::Unbind();
+
+    // Depth: Set the min and magfilter as nearest
+    m_fullSceneTextures[0] = std::make_shared<Texture2DObject>();
+    m_fullSceneTextures[0]->Bind();
+    m_fullSceneTextures[0]->SetImage(0, width, height, TextureObject::FormatDepth, TextureObject::InternalFormatDepth);
+    m_fullSceneTextures[0]->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_NEAREST);
+    m_fullSceneTextures[0]->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_NEAREST);
+
+    // Albedo: Bind the newly created texture, set the image, and the min and magfilter as nearest
+    m_fullSceneTextures[1] = std::make_shared<Texture2DObject>();
+    m_fullSceneTextures[1]->Bind();
+    m_fullSceneTextures[1]->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormatSRGBA8);
+    m_fullSceneTextures[1]->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_NEAREST);
+    m_fullSceneTextures[1]->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_NEAREST);
+
+    // Normal: Bind the newly created texture, set the image and the min and magfilter as nearest
+    m_fullSceneTextures[2] = std::make_shared<Texture2DObject>();
+    m_fullSceneTextures[2]->Bind();
+    m_fullSceneTextures[2]->SetImage(0, width, height, TextureObject::FormatRG, TextureObject::InternalFormatRG16F);
+    m_fullSceneTextures[2]->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_NEAREST);
+    m_fullSceneTextures[2]->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_NEAREST);
+
+    // Others: Bind the newly created texture, set the image and the min and magfilter as nearest
+    m_fullSceneTextures[3] = std::make_shared<Texture2DObject>();
+    m_fullSceneTextures[3]->Bind();
+    m_fullSceneTextures[3]->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormatSRGBA8);
+    m_fullSceneTextures[3]->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_NEAREST);
+    m_fullSceneTextures[3]->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_NEAREST);
+
+    m_fullSceneFramebuffer->Bind();
+    m_fullSceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Depth, *m_fullSceneTextures[0]);
+    m_fullSceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_fullSceneTextures[1]);
+    m_fullSceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color1, *m_fullSceneTextures[2]);
+    m_fullSceneFramebuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color2, *m_fullSceneTextures[3]);
+
+    // Set the draw buffers used by the framebuffer (all attachments except depth)
+    m_fullSceneFramebuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 4>(
+        {
+            FramebufferObject::Attachment::Color0,
+            FramebufferObject::Attachment::Color1,
+            FramebufferObject::Attachment::Color2
+        }));
     FramebufferObject::Unbind();
+    Texture2DObject::Unbind();
+
+
 }
 
 void WaterApplication::InitializeRenderer()
@@ -347,7 +392,7 @@ void WaterApplication::InitializeRenderer()
     int width, height;
     GetMainWindow().GetDimensions(width, height);
 
-    // Set up deferred passes
+    // Set up deferred passes for opaque items
     {
         std::unique_ptr<GBufferRenderPass> gbufferRenderPass(std::make_unique<GBufferRenderPass>(width, height));
 
@@ -366,23 +411,44 @@ void WaterApplication::InitializeRenderer()
 
         // Add the render passes
         m_renderer.AddRenderPass(std::move(gbufferRenderPass));
-        m_renderer.AddRenderPass(std::make_unique<DeferredRenderPass>(m_deferredMaterial, m_sceneFramebuffer));
+        m_renderer.AddRenderPass(std::make_unique<DeferredRenderPass>(m_deferredMaterial, m_mainSceneFramebuffer));
     }
 
     // Initialize the framebuffers and the textures they use
     InitializeFramebuffers();
 
-    //SSR passes
+    // Skybox pass
+    // We can do this after the opaque pass since we know there is not going to any other opaque thing infront
+    m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture, m_mainSceneFramebuffer));
+
+    // Transparency Passes
+    // The goal is to have opaque g-buffer for the forward rendering
+    // and then the full scene g-buffer for the rest of the passes going forward
     {
-        //Get the reflection texture
-        m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_depthTexture, m_normalTexture, m_otherTexture);
+        // Copy the opaque gbuffer textures into our fullscene framebruffer
+        std::shared_ptr<Material> copyGbuffer = CreatePostFXMaterial("shaders/postfx/copyGBuffer.frag", m_sceneTexture);
+        copyGbuffer->SetUniformValue("DepthTexture", m_depthTexture);
+        copyGbuffer->SetUniformValue("NormalTexture", m_normalTexture);
+        copyGbuffer->SetUniformValue("OtherTexture", m_otherTexture);
+        m_renderer.AddRenderPass(std::make_unique<GBufferCopyPass>(copyGbuffer, m_fullSceneFramebuffer));
+
+        // Update the fullscene g-buffer with the transparent data
+        m_renderer.AddRenderPass(std::make_unique<GBufferRenderPass>(m_fullSceneFramebuffer, true));
+
+        // Run the forward rendering pass on the opaque data only
+        m_renderer.AddRenderPass(std::make_unique<TransparencyPass>(m_mainSceneFramebuffer));
+    }
+    // SSR passes
+    {
+        // Get the reflection texture
+        m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_fullSceneTextures[0], m_fullSceneTextures[2], m_fullSceneTextures[3]);
         m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_ssrMaterial, m_reflectionBuffer));
 
-        //Copy the reflections into temp buffers for blurring
+        // Copy the reflections into temp buffers for blurring
         std::shared_ptr<Material> copyMaterial = CreatePostFXMaterial("shaders/postfx/copy.frag", m_reflectiveColorTexture);
         m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(copyMaterial, m_tempFramebuffers[0]));
 
-        //Blur the copied reflection texture
+        // Blur the copied reflection texture
         std::shared_ptr<Material> blurHorizontalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[0]);
         std::shared_ptr<Material> blurVerticalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[1]);
 
@@ -396,17 +462,14 @@ void WaterApplication::InitializeRenderer()
         }
     }
 
-    // Skybox pass
-    m_renderer.AddRenderPass(std::make_unique<SkyboxRenderPass>(m_skyboxTexture, m_sceneFramebuffer));
-
     // Final composite pass
     std::shared_ptr<Material> composeMaterial = CreateCompositeMaterial(m_sceneTexture);
     composeMaterial->SetUniformValue("ReflectiveTexture", m_reflectiveColorTexture);
     composeMaterial->SetUniformValue("BlurReflectiveTexture", m_tempTextures[0]);
-    composeMaterial->SetUniformValue("SpecularTexture", m_otherTexture);
+    composeMaterial->SetUniformValue("SpecularTexture", m_fullSceneTextures[3]);
     composeMaterial->SetUniformValue("EnvironmentTexture", m_skyboxTexture);
-    composeMaterial->SetUniformValue("DepthTexture", m_depthTexture);
-    composeMaterial->SetUniformValue("NormalTexture", m_normalTexture);
+    composeMaterial->SetUniformValue("DepthTexture", m_fullSceneTextures[0]);
+    composeMaterial->SetUniformValue("NormalTexture", m_fullSceneTextures[2]);
 
     m_skyboxTexture->Bind();
     float maxLod;

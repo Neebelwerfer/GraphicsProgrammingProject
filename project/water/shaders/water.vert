@@ -9,8 +9,8 @@ layout (location = 4) in vec2 VertexTexCoord;
 out vec3 ViewNormal;
 out vec3 ViewTangent;
 out vec3 ViewBitangent;
+out vec3 ViewPosition;
 out vec2 TexCoord;
-out mat3 tbn;
 
 //Uniforms
 uniform mat4 WorldViewMatrix;
@@ -28,12 +28,10 @@ void main()
 	// bitangent in view space (for lighting computation)
 	ViewBitangent = (WorldViewMatrix * vec4(VertexBitangent, 0.0)).xyz;
 
+	ViewPosition = (WorldViewMatrix * vec4(VertexPosition, 1.0)).xyz;
+
 	// texture coordinates
 	TexCoord = VertexTexCoord;
-
-	tbn[0] = (WorldMatrix * vec4(ViewTangent, 0.0)).xyz;
-	tbn[1] = (WorldMatrix * vec4(ViewBitangent, 0.0)).xyz;
-	tbn[2] = (WorldMatrix * vec4(ViewNormal, 0.0)).xyz;
 
 	// final vertex position (for opengl rendering, not for lighting)
 	gl_Position = WorldViewProjMatrix * vec4(VertexPosition, 1.0);

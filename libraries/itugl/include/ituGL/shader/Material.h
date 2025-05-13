@@ -106,6 +106,10 @@ public:
     // You can skip depth, stencil or blending using the override flags
     void Use(OverrideFlags overrideFlags = OverrideFlags::NoOverride) const;
 
+    void SetTransparency(bool isTransparent);
+
+    const bool GetTransparency() const;
+
 private:
     // Set all the properties relative to depth
     void UseDepthTest() const;
@@ -125,6 +129,9 @@ private:
 
     // If it should write to depth or not. Default: True
     bool m_depthWrite;
+
+    // If the material should be treated as transparent
+    bool m_isTransparent;
 
     // Test functions for front and back stencil. Default: Never
     std::array<TestFunction, 2> m_stencilTestFunctions;

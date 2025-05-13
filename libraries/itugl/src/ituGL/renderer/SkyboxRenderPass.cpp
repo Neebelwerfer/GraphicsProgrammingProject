@@ -49,6 +49,7 @@ void SkyboxRenderPass::Render()
     glDepthFunc(GL_EQUAL);
 
     const Mesh& fullscreenMesh = renderer.GetFullscreenMesh();
+
     fullscreenMesh.DrawSubmesh(0);
     
     // Restore default value

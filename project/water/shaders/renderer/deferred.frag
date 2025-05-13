@@ -1,4 +1,4 @@
-﻿//Inputs
+//Inputs
 in vec2 TexCoord;
 
 //Outputs

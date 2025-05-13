@@ -18,6 +18,7 @@ Material::Material(std::shared_ptr<ShaderProgram> shaderProgram, const NameSet& 
     , m_stencilDepthPass{ StencilOperation::Keep, StencilOperation::Keep }
     , m_blendEquations{ BlendEquation::None }
     , m_blendParams{ BlendParam::One, BlendParam::Zero, BlendParam::One, BlendParam::Zero }
+    , m_isTransparent(false)
 {
 }
 
@@ -203,6 +204,16 @@ void Material::Use(OverrideFlags overrideFlags) const
     {
         UseBlend();
     }
+}
+
+void Material::SetTransparency(bool isTransparent)
+{
+    m_isTransparent = isTransparent;
+}
+
+const bool Material::GetTransparency() const
+{
+    return m_isTransparent;
 }
 
 void Material::UseDepthTest() const
