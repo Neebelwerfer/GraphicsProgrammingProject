@@ -87,6 +87,7 @@ void main()
 	derivedNormal.y *= -1;
 	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
 
+	// Hacky way to differentiate DeferredPass and ForwardPass
 	if(ForwardPass == 0)
 	{
 		FragAlbedo = vec4(Color * (texA + texB), Alpha);
@@ -100,8 +101,8 @@ void main()
 		vec3 viewDir = GetDirection(ViewPosition, vec3(0));
 
 		// Convert position, normal and view vector to world space
-		vec3 worldNormal = (InvViewMatrix * vec4(combinedViewSpaceNormal, 0)).xyz;
-		vec3 worldPosition = (InvViewMatrix * vec4(ViewPosition, 1)).xyz;
+		vec3 worldNormal = (InvViewMatrix * vec4(normalize(combinedViewSpaceNormal), 0)).xyz;
+		vec3 worldPosition = (InvViewMatrix * vec4(normalize(ViewPosition), 1)).xyz;
 		viewDir = (InvViewMatrix * vec4(viewDir, 0)).xyz;
 
 		// Set surface material data

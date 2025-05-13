@@ -8,7 +8,7 @@
 WaterManager::WaterManager(Renderer& renderer, float& time)
     : m_colour(0.31, 0.515, 0.663)
     , m_jump(0.0f, 0.0f)
-    , m_tiling(5)
+    , m_tiling(3)
     , m_speed(0.5f)
     , m_flowStrength(0.1f)
     , m_flowOffset(-0.5f)

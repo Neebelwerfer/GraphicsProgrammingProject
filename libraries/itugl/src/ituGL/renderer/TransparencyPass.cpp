@@ -43,14 +43,13 @@ void TransparencyPass::Render()
         //for all lights
         bool first = true;
         unsigned int lightIndex = 0;
+ 
+        // Hacky way to ensure that we have blend enabled
+        // but can allow that since all objects getting rendered this pass is transparent
+        renderer.GetDevice().EnableFeature(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         while (renderer.UpdateLights(shaderProgram, lights, lightIndex))
         {
-            // Set the renderstates
-            renderer.SetLightingRenderStates(first);
-
-            // Hacky way to ensure that we have blend enabled
-            renderer.GetDevice().EnableFeature(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
             // Draw
             drawcallInfo.drawcall.Draw();

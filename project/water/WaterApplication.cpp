@@ -32,7 +32,7 @@
 const float _MaxPlaytime = 60;
 
 WaterApplication::WaterApplication()
-    : Application(1024, 1024, "Water Scene")
+    : Application(1248, 1248, "Water Scene")
     , m_renderer(GetDevice())
     , m_mainSceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_reflectionBuffer(std::make_shared<FramebufferObject>())
@@ -41,9 +41,9 @@ WaterApplication::WaterApplication()
     , m_timeElapsed(0)
     , m_showType(0)
     , m_maxDistance(20)
-    , m_resolution(0.5)
+    , m_resolution(0.7)
     , m_steps(15)
-    , m_thickness(0.3)
+    , m_thickness(0.85)
     , m_blurIterations(5)
 {
 }

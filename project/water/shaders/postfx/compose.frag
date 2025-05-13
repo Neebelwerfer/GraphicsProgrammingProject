@@ -21,7 +21,7 @@ vec3 ComputeSSRIndirectLighting(SurfaceData data, vec3 viewDir, vec4 reflectiveC
 	vec3 reflectionDir = reflect(-viewDir, data.normal);
 	vec4 blurReflectiveColor = texture(BlurReflectiveTexture, TexCoord);
 
-	vec3 diffuseColor = mix(reflectiveColor.rgb, blurReflectiveColor.rgb + GetAlbedo(data), pow(data.roughness, 0.25f));
+	vec3 diffuseColor = blurReflectiveColor.rgb * GetAlbedo(data); //mix(reflectiveColor.rgb, blurReflectiveColor.rgb * GetAlbedo(data), pow(data.roughness, 0.25f));
 
 	vec3 specularColor = mix(reflectiveColor.rgb, blurReflectiveColor.rgb, pow(data.roughness, 0.25f));
 	specularColor *= GeometrySmith(data.normal, reflectionDir, viewDir, data.roughness);
