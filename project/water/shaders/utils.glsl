@@ -133,3 +133,22 @@ vec3 HSVToRGB( vec3 hsv )
    return hsv.z * mix( K.xxx, clamp(p - K.xxx, 0, 1), hsv.y );
 }
 
+vec4 TransformViewToScreenSpace(vec4 view, vec2 texSize)
+{
+	vec4 frag = view;
+
+	// Project frag to screen space
+	frag = ProjectionMatrix * frag;
+
+	// Perspective Division
+	frag.xyz /= frag.w;
+
+	// Convert to UV coordinates
+	frag.xy = frag.xy * 0.5 + 0.5;
+
+	// Convert to fragment coordinate
+	frag.xy *= texSize;
+	
+	return frag;
+}
+
