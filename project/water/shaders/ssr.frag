@@ -147,5 +147,13 @@ void main()
 		}
 	}
 
-	FragColor = vec4(mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit0), hit1);
+	float visibility = hit1
+		// Scale based on if the reflection goes toward camera
+		* (1 - max(dot(-unitPositionFrom, reflection), 0))
+		// Scale based on how far, in depth, from the ray the hit was 
+		* (1 - clamp(depth / Thickness, 0, 1))
+		// Scale based on length between the start point the the hit
+		* (1 - clamp(length(positionTo - positionFrom) / MaxDistance, 0, 1));
+
+	FragColor = vec4(mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit0), visibility);
 }

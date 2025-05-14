@@ -140,7 +140,7 @@ void WaterApplication::InitializeLights()
     // Create a directional light and add it to the scene
     std::shared_ptr<DirectionalLight> directionalLight = std::make_shared<DirectionalLight>();
     directionalLight->SetDirection(glm::vec3(0.0f, -1.0f, -0.3f)); // It will be normalized inside the function
-    directionalLight->SetIntensity(3.0f);
+    directionalLight->SetIntensity(1.5f);
     m_scene.AddSceneNode(std::make_shared<SceneLight>("directional light", directionalLight));
 
 
@@ -458,8 +458,8 @@ void WaterApplication::InitializeRenderer()
         std::shared_ptr<Material> blurHorizontalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[0]);
         std::shared_ptr<Material> blurVerticalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[1]);
 
-        blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(1.0f / width, 0.0f));
-        blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / height));
+        blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(3.0f / width, 0.0f));
+        blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 3.0f / height));
 
         for (int i = 0; i < m_blurIterations; ++i)
         {

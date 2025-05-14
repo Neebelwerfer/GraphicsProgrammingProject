@@ -16,14 +16,15 @@ uniform mat4 InvViewMatrix;
 uniform mat4 InvProjMatrix;
 
 // Computes the color for our ssr reflection
-vec3 ComputeSSRIndirectLighting(SurfaceData data, vec3 viewDir, vec4 reflectiveColor)
+vec3 ComputeSSRIndirectLighting(SurfaceData data, vec3 viewDir, vec4 reflectiveColor, float ssrVisibility)
 {
 	vec3 reflectionDir = reflect(-viewDir, data.normal);
 	vec4 blurReflectiveColor = texture(BlurReflectiveTexture, TexCoord);
 
 	vec3 diffuseColor = blurReflectiveColor.rgb * GetAlbedo(data);
 
-	vec3 specularColor = mix(reflectiveColor.rgb, blurReflectiveColor.rgb, pow(data.roughness, 0.25f));
+	//Blur based on visibility
+	vec3 specularColor = mix(blurReflectiveColor.rgb, reflectiveColor.rgb, ssrVisibility);
 	specularColor *= GeometrySmith(data.normal, reflectionDir, viewDir, data.roughness);
 
 	// Blend SSR and EnvironmentMap reflection based on the roughness
@@ -47,7 +48,7 @@ void main()
 	vec4 specular = texture(SpecularTexture, TexCoord);
 
 	// This should result in 1 if the ssr pass had hit something at this pixel otherwise 0
-	float ssrHit = reflectiveColor.a;
+	float ssrVisibility = reflectiveColor.a;
 
 	// Set surface material data
 	SurfaceData data;
@@ -58,7 +59,7 @@ void main()
 	data.metalness = specular.z;
 
 	// If the ssr had no hit, we sample the environment map for reflections otherwise we sample the ssr map
-	vec3 lightning = mix(ComputeIndirectLighting(data, viewDir), ComputeSSRIndirectLighting(data, viewDir, reflectiveColor), ssrHit > 0.0 ? 1 : 0);
+	vec3 lightning = mix(ComputeIndirectLighting(data, viewDir), ComputeSSRIndirectLighting(data, viewDir, reflectiveColor, ssrVisibility), ssrVisibility > 0.0 ? 1 : 0);
 
 	vec3 fresnel = FresnelSchlick(GetReflectance(data), viewDir, data.normal);
 
