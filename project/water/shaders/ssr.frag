@@ -42,8 +42,8 @@ void main()
 	}
 
 	// Convert our start point and end point to screen space coordinates
-	vec4 startFrag = TransformViewToScreenSpace(startView, texSize);
-	vec4 endFrag = TransformViewToScreenSpace(endView, texSize);
+	vec4 startFrag = TransformViewToScreenSpace(startView, ProjectionMatrix, texSize);
+	vec4 endFrag = TransformViewToScreenSpace(endView, ProjectionMatrix, texSize);
 
 	vec2 frag = startFrag.xy;
 	uv.xy = frag;

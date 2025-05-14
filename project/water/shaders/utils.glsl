@@ -133,12 +133,12 @@ vec3 HSVToRGB( vec3 hsv )
    return hsv.z * mix( K.xxx, clamp(p - K.xxx, 0, 1), hsv.y );
 }
 
-vec4 TransformViewToScreenSpace(vec4 view, vec2 texSize)
+vec4 TransformViewToScreenSpace(vec4 view, mat4 projMatrix, vec2 texSize)
 {
 	vec4 frag = view;
 
 	// Project frag to screen space
-	frag = ProjectionMatrix * frag;
+	frag = projMatrix * frag;
 
 	// Perspective Division
 	frag.xyz /= frag.w;
