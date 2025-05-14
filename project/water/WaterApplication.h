@@ -7,6 +7,7 @@
 #include <ituGL/renderer/Renderer.h>
 #include <ituGL/camera/CameraController.h>
 #include <ituGL/utils/DearImGui.h>
+#include <ituGL/scene/SceneLight.h>
 #include "WaterManager.h"
 
 class Texture2DObject;
@@ -52,6 +53,10 @@ private:
 
     // Renderer
     Renderer m_renderer;
+    
+    // Light
+    std::shared_ptr<SceneLight> m_spotLight;
+    float m_lightRotationSpeed;
 
     // Time
     float m_timeElapsed;

@@ -72,14 +72,15 @@ void ImGuiSceneVisitor::VisitLight(SceneLight& sceneLight)
             if (light.GetType() == Light::Type::Spot)
             {
                 SpotLight& spot = (SpotLight&)light;
+
+                glm::vec2 distanceAttenuation = spot.GetDistanceAttenuation();
+                if (ImGui::DragFloat2("Distance Attenuation", &distanceAttenuation[0], 1.0))
+                    spot.SetDistanceAttenuation(distanceAttenuation);
+
                 glm::vec2 angleAttenuation = glm::degrees(spot.GetAngleAttenuation());
                 if (ImGui::DragFloat2("Angle Attenuation", &angleAttenuation[0], 1.0f))
                     spot.SetAngleAttenuation(glm::radians(angleAttenuation));
                 
-                float angle = glm::degrees(spot.GetAngle());
-                if (ImGui::DragFloat("Angle", &angle, 1.0f))
-                    spot.SetAngle(glm::radians(angle));
-
             }
             else if (light.GetType() == Light::Type::Directional)
             {

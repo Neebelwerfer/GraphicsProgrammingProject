@@ -41,10 +41,11 @@ WaterApplication::WaterApplication()
     , m_timeElapsed(0)
     , m_showType(0)
     , m_maxDistance(20)
-    , m_resolution(0.7)
+    , m_resolution(0.7f)
     , m_steps(15)
-    , m_thickness(0.85)
+    , m_thickness(0.250f)
     , m_blurIterations(5)
+    , m_lightRotationSpeed(0.5)
 {
 }
 
@@ -75,8 +76,17 @@ void WaterApplication::Update()
     RendererSceneVisitor rendererSceneVisitor(m_renderer);
     m_scene.AcceptVisitor(rendererSceneVisitor);
 
-    if(m_play)
+    if (m_play)
+    {
         m_timeElapsed += GetDeltaTime();
+        if (m_spotLight)
+        {
+            glm::vec3 rotation = m_spotLight->GetTransform()->GetRotation();
+            rotation.y += m_lightRotationSpeed * GetDeltaTime();
+            m_spotLight->GetTransform()->SetRotation(rotation);
+            m_spotLight->MatchLightToTransform();
+        }
+    }
 
     if (m_timeElapsed > _MaxPlaytime)
         m_timeElapsed = 0.0f;
@@ -116,6 +126,7 @@ void WaterApplication::InitializeCamera()
     std::shared_ptr<Transform> cameraTransform = sceneCamera->GetTransform();
     cameraTransform->SetRotation(glm::vec3(-0.46, -1.6, 0));
     cameraTransform->SetTranslation(glm::vec3(-18, 9, -2));
+    sceneCamera->MatchCameraToTransform();
 
     // Add the camera node to the scene
     m_scene.AddSceneNode(sceneCamera);
@@ -134,18 +145,13 @@ void WaterApplication::InitializeLights()
 
 
     std::shared_ptr<SpotLight> spotLight = std::make_shared<SpotLight>();
-    spotLight->SetPosition(glm::vec3(0, 5, 0));
-    spotLight->SetDirection(glm::vec3(0.0f, -1.0f, 0.0f));
-    spotLight->SetIntensity(5);
-    spotLight->SetDistanceAttenuation(glm::vec2(5.0f, 10.0f));
-    spotLight->SetAngleAttenuation(glm::vec2(0.1f, 0.4f));
-    m_scene.AddSceneNode(std::make_shared<SceneLight>("spot light", spotLight));
-
-    // Create a point light and add it to the scene
-    //std::shared_ptr<PointLight> pointLight = std::make_shared<PointLight>();
-    //pointLight->SetPosition(glm::vec3(0, 0, 0));
-    //pointLight->SetDistanceAttenuation(glm::vec2(5.0f, 10.0f));
-    //m_scene.AddSceneNode(std::make_shared<SceneLight>("point light", pointLight));
+    spotLight->SetPosition(glm::vec3(0.1f, 6.4, -0.5f));
+    spotLight->SetDirection(glm::vec3(0.0f, 0.7f, -0.6f));
+    spotLight->SetIntensity(45);
+    spotLight->SetDistanceAttenuation(glm::vec2(10.0f, 22.0f));
+    spotLight->SetAngleAttenuation(glm::vec2(0.42f, 0.6f));
+    m_spotLight = std::make_shared<SceneLight>("spot light", spotLight);
+    m_scene.AddSceneNode(m_spotLight);
 }
 
 void WaterApplication::InitializeMaterials()
@@ -438,7 +444,7 @@ void WaterApplication::InitializeRenderer()
         // Run the forward rendering pass on the opaque data only
         m_renderer.AddRenderPass(std::make_unique<TransparencyPass>(m_mainSceneFramebuffer));
     }
-    // SSR passes
+    // SSR pass
     {
         // Get the reflection texture
         m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_fullSceneTextures[0], m_fullSceneTextures[2], m_fullSceneTextures[3]);
@@ -452,8 +458,8 @@ void WaterApplication::InitializeRenderer()
         std::shared_ptr<Material> blurHorizontalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[0]);
         std::shared_ptr<Material> blurVerticalMaterial = CreatePostFXMaterial("shaders/postfx/blur.frag", m_tempTextures[1]);
 
-        blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(6.0f / width, 0.0f));
-        blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 6.0f / height));
+        blurHorizontalMaterial->SetUniformValue("Scale", glm::vec2(1.0f / width, 0.0f));
+        blurVerticalMaterial->SetUniformValue("Scale", glm::vec2(0.0f, 1.0f / height));
 
         for (int i = 0; i < m_blurIterations; ++i)
         {
@@ -684,7 +690,7 @@ void WaterApplication::RenderGUI()
             {
                 m_ssrMaterial->SetUniformValue("Resolution", m_resolution);
             }
-            if (ImGui::DragInt("Steps", &m_steps, 1.0f, 0.0, 100))
+            if (ImGui::DragInt("Steps", &m_steps, 1, 0, 100))
             {
                 m_ssrMaterial->SetUniformValue("Steps", m_steps);
             }
