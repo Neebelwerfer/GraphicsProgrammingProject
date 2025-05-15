@@ -15,7 +15,6 @@ uniform vec3 Color;
 uniform sampler2D ColorTexture;
 uniform sampler2D NormalTexture;
 uniform sampler2D FlowTexture;
-uniform sampler2D DerivativeMap;
 uniform mat4 InvViewMatrix;
 uniform float ElapsedTime;
 uniform int ForwardPass;
@@ -79,19 +78,10 @@ void main()
 
 	vec3 combinedViewSpaceNormal = normalize(normalA + normalB);
 
-	//Get the normal from the derivative map
-	vec3 dhA = SampleDerivativeMap(DerivativeMap, uvwA.xy) * (uvwA.z * finalHeightScale);
-	vec3 dhB = SampleDerivativeMap(DerivativeMap, uvwB.xy) * (uvwB.z * finalHeightScale);
-
-	vec3 derivedNormal = normalize(vec3(-(dhA.xy + dhB.xy), 1));
-	derivedNormal.y *= -1;
-	derivedNormal = TransformTangentNormal(derivedNormal.xyz, normalize(ViewNormal), normalize(ViewTangent));
-
 	// Hacky way to differentiate DeferredPass and ForwardPass
 	if(ForwardPass == 0)
 	{
 		FragAlbedo = vec4(Color * (texA + texB), Alpha);
-		FragNormal = normalize(derivedNormal).xy;
 		FragNormal = normalize(combinedViewSpaceNormal).xy;
 		FragOthers = waterSpecular;
 	}
