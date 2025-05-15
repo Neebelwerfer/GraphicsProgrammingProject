@@ -61,8 +61,6 @@ void main()
 	// If the ssr had no hit, we sample the environment map for reflections otherwise we sample the ssr map
 	vec3 lightning = mix(ComputeIndirectLighting(data, viewDir), ComputeSSRIndirectLighting(data, viewDir, reflectiveColor, ssrVisibility), ssrVisibility > 0.0 ? 1 : 0);
 
-	vec3 fresnel = FresnelSchlick(GetReflectance(data), viewDir, data.normal);
-
 	FragColor = texture(SourceTexture, TexCoord);
 	FragColor.rgb += lightning;
 }
