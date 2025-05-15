@@ -35,8 +35,8 @@ void main()
 
 	// Early exit 
 	// 1. if depth is far clip
-	// 2. if the is near parallel or parallel with the viewing angle
-	if (texture(DepthTexture, TexCoord).r == 1 || dot(normal, -unitPositionFrom) > 0.9 || Enabled == 0)
+	// 2. if the reflection goes toward the camera
+	if (texture(DepthTexture, TexCoord).r == 1 || reflection.z > 0 || Enabled == 0)
 	{
 		FragColor = vec4(0, 0, 0, 0);
 		return;
@@ -49,9 +49,12 @@ void main()
 	vec2 frag = startFrag.xy;
 	uv.xy = frag;
 
+	// The differences between the start fragment and end fragment
 	float deltaX = endFrag.x - startFrag.x;
 	float deltaY = endFrag.y - startFrag.y;
 
+	// Calculate how big steps we take. The sizes of the steps are adjusted by resolution
+	// higher resolution leads to smaller but more steps
 	float useX = abs(deltaX) >= abs(deltaY) ? 1.0 : 0.0;
 	float delta = mix(abs(deltaY), abs(deltaX), useX) * clamp(Resolution, 0.0, 1.0);
 	vec2 increment = vec2(deltaX, deltaY) / max(delta, 0.001);
@@ -69,7 +72,6 @@ void main()
 
 	vec3 positionTo = positionFrom;
 	vec3 normalTo = normal;
-	float minimumDepth = 0;
 
 	// First Pass
 	// Lets see if there is a hit at all
@@ -82,11 +84,6 @@ void main()
 
 		// Get fragment view space data
 		positionTo = ReconstructViewPosition(DepthTexture, uv.xy, InvProjMatrix);
-		normalTo = normalize(GetImplicitNormal(texture(NormalTexture, uv.xy).xy));
-
-		// Scaling minimun depth difference based on if the normal of start position and the normal of sampled position is near parallel
-		// Hack to remove self reflection on a plane
-		minimumDepth = mix(0, Thickness, dot(normal, normalTo) < 0.9 ? 0.0 : 1.0);
 
 		// Calculate current progress along the reflectance vector
 		search1 = mix((frag.y - startFrag.y) / deltaY, (frag.x - startFrag.x) / deltaX, useX);
@@ -103,7 +100,7 @@ void main()
 			break;
 		}
 		// Break if we register a hit
-		else if (depth < 0 && depth > -Thickness && abs(positionFrom.z - positionTo.z) > minimumDepth)
+		else if (depth < 0 && depth > -Thickness)
 		{
 			hit0 = 1;
 			break;
@@ -149,8 +146,6 @@ void main()
 	}
 
 	float visibility = hit1
-		// Scale based on if the reflection goes toward camera
-		* (1 - max(dot(-unitPositionFrom, reflection), 0))
 		// Scale based on how far, in depth, from the ray the hit was 
 		* (1 - clamp(depth / Thickness, 0, 1))
 		// Scale based on length between the start point the the hit

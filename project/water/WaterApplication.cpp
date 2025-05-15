@@ -46,6 +46,8 @@ WaterApplication::WaterApplication()
     , m_thickness(0.250f)
     , m_blurIterations(5)
     , m_lightRotationSpeed(0.5)
+    , m_ssrEnabled(true)
+    , m_maxLod(0)
 {
 }
 
@@ -643,7 +645,6 @@ void WaterApplication::RenderGUI()
             {
                 m_ssrMaterial->SetUniformValue("Enabled", m_ssrEnabled > 0 ? 1 : 0);
             }
-            
             if (ImGui::DragFloat("Max distance", &m_maxDistance, 1.0f, 0.0f, 100))
             {
                 m_ssrMaterial->SetUniformValue("MaxDistance", m_maxDistance);
