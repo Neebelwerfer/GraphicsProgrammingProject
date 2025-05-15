@@ -256,13 +256,12 @@ void WaterApplication::InitializeModels()
     m_skyboxTexture = TextureCubemapLoader::LoadTextureShared("models/skybox/puresky.hdr", TextureObject::FormatRGB, TextureObject::InternalFormatRGB16F);
 
     m_skyboxTexture->Bind();
-    float maxLod;
-    m_skyboxTexture->GetParameter(TextureObject::ParameterFloat::MaxLod, maxLod);
+    m_skyboxTexture->GetParameter(TextureObject::ParameterFloat::MaxLod, m_maxLod);
     TextureCubemapObject::Unbind();
 
     // Set the environment texture on the deferred material
     m_deferredMaterial->SetUniformValue("EnvironmentTexture", m_skyboxTexture);
-    m_deferredMaterial->SetUniformValue("EnvironmentMaxLod", maxLod);
+    m_deferredMaterial->SetUniformValue("EnvironmentMaxLod", m_maxLod);
 
     // Configure loader
     ModelLoader loader(m_defaultMaterial);
@@ -476,12 +475,7 @@ void WaterApplication::InitializeRenderer()
     composeMaterial->SetUniformValue("EnvironmentTexture", m_skyboxTexture);
     composeMaterial->SetUniformValue("DepthTexture", m_fullSceneTextures[0]);
     composeMaterial->SetUniformValue("NormalTexture", m_fullSceneTextures[2]);
-
-    m_skyboxTexture->Bind();
-    float maxLod;
-    m_skyboxTexture->GetParameter(TextureObject::ParameterFloat::MaxLod, maxLod);
-    TextureCubemapObject::Unbind();
-    composeMaterial->SetUniformValue("EnvironmentMaxLod", maxLod);
+    composeMaterial->SetUniformValue("EnvironmentMaxLod", m_maxLod);
 
     m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(composeMaterial, m_renderer.GetDefaultFramebuffer()));
 }
@@ -534,6 +528,7 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     material->SetUniformValue("Resolution", m_resolution);
     material->SetUniformValue("Steps", m_steps);
     material->SetUniformValue("Thickness", m_thickness);
+    material->SetUniformValue("Enabled", 1);
     return material;
 }
 
@@ -637,51 +632,18 @@ void WaterApplication::RenderGUI()
     {
         ImGui::Checkbox("Play", &m_play);
         ImGui::SliderFloat("Time", &m_timeElapsed, 0, _MaxPlaytime);
-        if (ImGui::CollapsingHeader("Debug Settings"))
-        {
-            ImGui::Indent();
-            if (ImGui::BeginListBox("Show Type"))
-            {
-            
-                if (ImGui::Selectable("Lighting", m_showType == 0))
-                {
-                    m_showType = 0;
-                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
-                }
-                if (ImGui::Selectable("Albedo", m_showType == 1))
-                {
-                    m_showType = 1;
-                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
-                }
-                if (ImGui::Selectable("Position", m_showType == 2))
-                {
-                    m_showType = 2;
-                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
-                }
-                if (ImGui::Selectable("Depth", m_showType == 3))
-                {
-                    m_showType = 3;
-                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
-                }
-                if (ImGui::Selectable("WorldNormal", m_showType == 4))
-                {
-                    m_showType = 4;
-                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
-                }
-                if (ImGui::Selectable("ViewNormal", m_showType == 5))
-                {
-                    m_showType = 5;
-                    m_deferredMaterial->SetUniformValue("ShowType", m_showType);
-                }
-                ImGui::EndListBox();
-            }
-            ImGui::Unindent();
-        }
+        ImGui::DragFloat("Spotlight rotation speed", &m_lightRotationSpeed, 0.1f);
+
         m_waterManager->RenderGUI(m_imGui);
 
         if (ImGui::CollapsingHeader("SSR Settings"))
         {
             ImGui::Indent();
+            if (ImGui::Checkbox("Enabled", &m_ssrEnabled))
+            {
+                m_ssrMaterial->SetUniformValue("Enabled", m_ssrEnabled > 0 ? 1 : 0);
+            }
+            
             if (ImGui::DragFloat("Max distance", &m_maxDistance, 1.0f, 0.0f, 100))
             {
                 m_ssrMaterial->SetUniformValue("MaxDistance", m_maxDistance);

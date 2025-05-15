@@ -67,6 +67,7 @@ private:
     float m_resolution;
     int   m_steps;
     float m_thickness;
+    bool m_ssrEnabled;
 
     // Other Properties
     int m_showType;
@@ -78,6 +79,7 @@ private:
 
     // Skybox texture
     std::shared_ptr<TextureCubemapObject> m_skyboxTexture;
+    float m_maxLod;
 
     std::shared_ptr<WaterManager> m_waterManager;
 

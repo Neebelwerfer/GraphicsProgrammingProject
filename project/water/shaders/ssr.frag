@@ -10,6 +10,7 @@ uniform sampler2D SourceTexture;
 uniform sampler2D NormalTexture;
 uniform mat4 ProjectionMatrix;
 uniform mat4 InvProjMatrix;
+uniform int Enabled;
 
 //SSR Properties
 uniform float MaxDistance;
@@ -35,7 +36,7 @@ void main()
 	// Early exit 
 	// 1. if depth is far clip
 	// 2. if the is near parallel or parallel with the viewing angle
-	if (texture(DepthTexture, TexCoord).r == 1 || dot(normal, -unitPositionFrom) > 0.9)
+	if (texture(DepthTexture, TexCoord).r == 1 || dot(normal, -unitPositionFrom) > 0.9 || Enabled == 0)
 	{
 		FragColor = vec4(0, 0, 0, 0);
 		return;
