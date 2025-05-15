@@ -96,7 +96,6 @@ private:
     std::shared_ptr<FramebufferObject> m_fullSceneFramebuffer;
     std::array<std::shared_ptr<Texture2DObject>, 4> m_fullSceneTextures;
 
-
     std::shared_ptr<FramebufferObject> m_reflectionBuffer;
     std::shared_ptr<Texture2DObject> m_reflectiveColorTexture;
 };
