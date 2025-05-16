@@ -29,6 +29,13 @@ float ClampedDot(vec3 v1, vec3 v2)
 vec3 GetImplicitNormal(vec2 normal)
 {
 	// Since the normal is in tangent space we can assume the z to be a positive value
+	float z = sqrt(1.0f - normal.x * normal.x - normal.y * normal.y);
+	return normalize(vec3(normal, z));
+}
+
+vec3 GetImplicitNormalClamped(vec2 normal)
+{
+	// Since the normal is in tangent space we can assume the z to be a positive value
 	float z = clamp(sqrt(1.0f - normal.x * normal.x - normal.y * normal.y), 0, 1);
 	return normalize(vec3(normal, z));
 }
@@ -60,7 +67,7 @@ vec3 SampleNormalMapScaled(sampler2D normalTexture, vec2 texCoord, vec3 normal, 
 	normalMap *= scale;
 
 	// Get implicit Z component
-	vec3 normalTangentSpace = GetImplicitNormal(normalMap);
+	vec3 normalTangentSpace = GetImplicitNormalClamped(normalMap);
 
 	// Create tangent space matrix
 	mat3 tangentMatrix = mat3(tangent, bitangent, normal);
@@ -76,7 +83,7 @@ vec3 SampleNormalMap(sampler2D normalTexture, vec2 texCoord, vec3 normal, vec3 t
 	vec2 normalMap = texture(normalTexture, texCoord).xy * 2 - vec2(1);
 
 	// Get implicit Z component
-	vec3 normalTangentSpace = GetImplicitNormal(normalMap);
+	vec3 normalTangentSpace = GetImplicitNormalClamped(normalMap);
 
 	// Create tangent space matrix
 	mat3 tangentMatrix = mat3(tangent, bitangent, normal);
