@@ -28,7 +28,7 @@ float ClampedDot(vec3 v1, vec3 v2)
 //
 vec3 GetImplicitNormal(vec2 normal)
 {
-	float z = sqrt(1.0f - normal.x * normal.x - normal.y * normal.y);
+	float z = clamp(sqrt(1.0f - normal.x * normal.x - normal.y * normal.y), 0, 1);
 	return vec3(normal, z);
 }
 
