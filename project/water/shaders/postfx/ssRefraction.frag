@@ -57,7 +57,7 @@ void main()
 	// 2. if the reflection goes toward the camera
 	if (texture(DepthFromTexture, TexCoord).r == 1 || refractionMask <= 0 || Enabled == 0)
 	{
-		FragColor = texture(BackgroundColorTexture, TexCoord);
+		FragColor = vec4(0);
 		return;
 	}
 
@@ -116,7 +116,7 @@ void main()
 		// Break if out of bounds
 		if(uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1 || positionTo.z >= 0)
 		{
-			FragColor = texture(BackgroundColorTexture, TexCoord);
+			FragColor = vec4(0);
 			return;
 		}
 		// Break if we register a hit
