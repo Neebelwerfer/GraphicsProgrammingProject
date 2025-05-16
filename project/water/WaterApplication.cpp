@@ -24,6 +24,7 @@
 #include <ituGL/renderer/GBufferCopyPass.h>
 #include <ituGL/renderer/PostFXRenderPass.h>
 #include <ituGL/renderer/TransparencyPass.h>
+#include <ituGL/renderer/CopyRenderPass.h>
 #include <ituGL/scene/RendererSceneVisitor.h>
 
 #include <ituGL/scene/ImGuiSceneVisitor.h>
@@ -37,9 +38,10 @@ WaterApplication::WaterApplication()
     , m_mainSceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_reflectionBuffer(std::make_shared<FramebufferObject>())
     , m_fullSceneFramebuffer(std::make_shared<FramebufferObject>())
+    , m_backgroundTexturesBuffer(std::make_shared<FramebufferObject>())
+    , m_refractionBuffer(std::make_shared<FramebufferObject>())
     , m_play(false)
     , m_timeElapsed(0)
-    , m_showType(0)
     , m_maxDistance(20)
     , m_resolution(0.7f)
     , m_steps(15)
@@ -47,6 +49,13 @@ WaterApplication::WaterApplication()
     , m_blurIterations(5)
     , m_lightRotationSpeed(0.5)
     , m_ssrEnabled(true)
+    , m_RefractionMaxDistance(20)
+    , m_Refractionresolution(0.7f)
+    , m_Refractionsteps(15)
+    , m_Refractionthickness(0.5f)
+    , m_rior(1.05f)
+    , m_depthMax(2)
+    , m_ssRefractionEnabled(true)
     , m_maxLod(0)
 {
 }
@@ -332,6 +341,16 @@ void WaterApplication::InitializeFramebuffers()
     m_reflectionBuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_reflectiveColorTexture);
     m_reflectionBuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
 
+    m_refractionColorTexture = std::make_shared<Texture2DObject>();
+    m_refractionColorTexture->Bind();
+    m_refractionColorTexture->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormatSRGBA8);
+    m_refractionColorTexture->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_NEAREST);
+    m_refractionColorTexture->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_NEAREST);
+
+    m_refractionBuffer->Bind();
+    m_refractionBuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_refractionColorTexture);
+    m_refractionBuffer->SetDrawBuffers(std::array<FramebufferObject::Attachment, 1>({ FramebufferObject::Attachment::Color0 }));
+
     for (int i = 0; i < m_tempFramebuffers.size(); ++i)
     {
         m_tempTextures[i] = std::make_shared<Texture2DObject>();
@@ -389,6 +408,25 @@ void WaterApplication::InitializeFramebuffers()
             FramebufferObject::Attachment::Color1,
             FramebufferObject::Attachment::Color2
         }));
+    
+    // Albedo: Bind the newly created texture, set the image, and the min and magfilter as nearest
+    m_backgroundTexture = std::make_shared<Texture2DObject>();
+    m_backgroundTexture->Bind();
+    m_backgroundTexture->SetImage(0, width, height, TextureObject::FormatRGBA, TextureObject::InternalFormatSRGBA8);
+    m_backgroundTexture->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_NEAREST);
+    m_backgroundTexture->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_NEAREST);
+
+    m_backgroundDepth = std::make_shared<Texture2DObject>();
+    m_backgroundDepth->Bind();
+    m_backgroundDepth->SetImage(0, width, height, TextureObject::FormatDepth, TextureObject::InternalFormatDepth);
+    m_backgroundDepth->SetParameter(TextureObject::ParameterEnum::MinFilter, GL_NEAREST);
+    m_backgroundDepth->SetParameter(TextureObject::ParameterEnum::MagFilter, GL_NEAREST);
+
+    m_backgroundTexturesBuffer->Bind();
+    m_backgroundTexturesBuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Depth, *m_backgroundDepth);
+    m_backgroundTexturesBuffer->SetTexture(FramebufferObject::Target::Draw, FramebufferObject::Attachment::Color0, *m_backgroundTexture);
+
+    // Make sure to unbind all the buffers and texture objects
     FramebufferObject::Unbind();
     Texture2DObject::Unbind();
 
@@ -409,7 +447,6 @@ void WaterApplication::InitializeRenderer()
         m_deferredMaterial->SetUniformValue("AlbedoTexture", gbufferRenderPass->GetAlbedoTexture());
         m_deferredMaterial->SetUniformValue("NormalTexture", gbufferRenderPass->GetNormalTexture());
         m_deferredMaterial->SetUniformValue("OthersTexture", gbufferRenderPass->GetOthersTexture());
-        m_deferredMaterial->SetUniformValue("ShowType", m_showType);
     
 
         // Save some gbuffer textures for later
@@ -435,10 +472,14 @@ void WaterApplication::InitializeRenderer()
     {
         // Copy the opaque gbuffer textures into our fullscene framebruffer
         std::shared_ptr<Material> copyGbuffer = CreatePostFXMaterial("shaders/postfx/copyGBuffer.frag", m_sceneTexture);
-        copyGbuffer->SetUniformValue("DepthTexture", m_depthTexture);
+        copyGbuffer->SetUniformValue("DepthTexture", m_depthTexture);  
         copyGbuffer->SetUniformValue("NormalTexture", m_normalTexture);
         copyGbuffer->SetUniformValue("OtherTexture", m_otherTexture);
         m_renderer.AddRenderPass(std::make_unique<GBufferCopyPass>(copyGbuffer, m_fullSceneFramebuffer));
+        
+        std::shared_ptr<Material> copyBackground = CreatePostFXMaterial("shaders/postfx/copyGBuffer.frag", m_sceneTexture);
+        copyGbuffer->SetUniformValue("DepthTexture", m_depthTexture);
+        m_renderer.AddRenderPass(std::make_unique<GBufferCopyPass>(copyBackground, m_backgroundTexturesBuffer));
 
         // Update the fullscene g-buffer with the transparent data
         m_renderer.AddRenderPass(std::make_unique<GBufferRenderPass>(m_fullSceneFramebuffer, true));
@@ -449,7 +490,7 @@ void WaterApplication::InitializeRenderer()
     // SSR pass
     {
         // Get the reflection texture
-        m_ssrMaterial = CreateSSRMaterial(m_sceneTexture, m_fullSceneTextures[0], m_fullSceneTextures[2], m_fullSceneTextures[3]);
+        m_ssrMaterial = CreateSSReflectionMaterial(m_sceneTexture, m_fullSceneTextures[0], m_fullSceneTextures[2], m_fullSceneTextures[3]);
         m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_ssrMaterial, m_reflectionBuffer));
 
         // Copy the reflections into temp buffers for blurring
@@ -470,9 +511,17 @@ void WaterApplication::InitializeRenderer()
         }
     }
 
+    // SSRefraction pass
+    {
+        m_ssRefractionMaterial = CreateSSRefractionMaterial(m_backgroundTexture, m_depthTexture, m_backgroundDepth, m_fullSceneTextures[2], m_fullSceneTextures[3]);
+        m_renderer.AddRenderPass(std::make_unique<PostFXRenderPass>(m_ssRefractionMaterial, m_refractionBuffer));
+
+    }
+
     // Final composite pass
     std::shared_ptr<Material> composeMaterial = CreateCompositeMaterial(m_sceneTexture);
     composeMaterial->SetUniformValue("ReflectiveTexture", m_reflectiveColorTexture);
+    composeMaterial->SetUniformValue("RefractiveTexture", m_refractionColorTexture);
     composeMaterial->SetUniformValue("BlurReflectiveTexture", m_tempTextures[0]);
     composeMaterial->SetUniformValue("SpecularTexture", m_fullSceneTextures[3]);
     composeMaterial->SetUniformValue("EnvironmentTexture", m_skyboxTexture);
@@ -484,7 +533,7 @@ void WaterApplication::InitializeRenderer()
 }
 
 // Material for Screen-Space Reflections
-std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture, std::shared_ptr<Texture2DObject> otherTexture)
+std::shared_ptr<Material> WaterApplication::CreateSSReflectionMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture, std::shared_ptr<Texture2DObject> otherTexture)
 {
     std::vector<const char*> vertexShaderPaths;
     vertexShaderPaths.push_back("shaders/version330.glsl");
@@ -494,7 +543,7 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     std::vector<const char*> fragmentShaderPaths;
     fragmentShaderPaths.push_back("shaders/version330.glsl");
     fragmentShaderPaths.push_back("shaders/utils.glsl");
-    fragmentShaderPaths.push_back("shaders/ssr.frag");
+    fragmentShaderPaths.push_back("shaders/postfx/ssReflection.frag");
     Shader fragmentShader = ShaderLoader(Shader::FragmentShader).Load(fragmentShaderPaths);
 
     std::shared_ptr<ShaderProgram> shaderProgramPtr = std::make_shared<ShaderProgram>();
@@ -531,6 +580,60 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     material->SetUniformValue("Resolution", m_resolution);
     material->SetUniformValue("Steps", m_steps);
     material->SetUniformValue("Thickness", m_thickness);
+    material->SetUniformValue("Enabled", 1);
+    return material;
+}
+
+std::shared_ptr<Material> WaterApplication::CreateSSRefractionMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthFromTexture, std::shared_ptr<Texture2DObject> depthToTexture, std::shared_ptr<Texture2DObject> normalFromTexture, std::shared_ptr<Texture2DObject> otherTexture)
+{
+    std::vector<const char*> vertexShaderPaths;
+    vertexShaderPaths.push_back("shaders/version330.glsl");
+    vertexShaderPaths.push_back("shaders/renderer/fullscreen.vert");
+    Shader vertexShader = ShaderLoader(Shader::VertexShader).Load(vertexShaderPaths);
+
+    std::vector<const char*> fragmentShaderPaths;
+    fragmentShaderPaths.push_back("shaders/version330.glsl");
+    fragmentShaderPaths.push_back("shaders/utils.glsl");
+    fragmentShaderPaths.push_back("shaders/postfx/ssRefraction.frag");
+    Shader fragmentShader = ShaderLoader(Shader::FragmentShader).Load(fragmentShaderPaths);
+
+    std::shared_ptr<ShaderProgram> shaderProgramPtr = std::make_shared<ShaderProgram>();
+    shaderProgramPtr->Build(vertexShader, fragmentShader);
+
+    // Get transform related uniform locations
+    ShaderProgram::Location projMatrixLocation = shaderProgramPtr->GetUniformLocation("ProjectionMatrix");
+    ShaderProgram::Location invProjMatrixLocation = shaderProgramPtr->GetUniformLocation("InvProjMatrix");
+    ShaderProgram::Location invViewMatrixLocation = shaderProgramPtr->GetUniformLocation("InvViewMatrix");
+
+    // Register shader with renderer
+    m_renderer.RegisterShaderProgram(shaderProgramPtr,
+        [=](const ShaderProgram& shaderProgram, const glm::mat4& worldMatrix, const Camera& camera, bool cameraChanged)
+        {
+            shaderProgram.SetUniform(projMatrixLocation, camera.GetProjectionMatrix());
+            shaderProgram.SetUniform(invProjMatrixLocation, glm::inverse(camera.GetProjectionMatrix()));
+        },
+        nullptr
+    );
+
+    ShaderUniformCollection::NameSet filteredUniforms;
+    filteredUniforms.insert("InvProjMatrix");
+    filteredUniforms.insert("InvViewMatrix");
+    filteredUniforms.insert("ProjectionMatrix");
+
+    // Create material
+    std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
+    material->SetUniformValue("BackgroundColorTexture", sourceTexture);
+    material->SetUniformValue("DepthFromTexture", depthFromTexture);
+    material->SetUniformValue("DepthToTexture", depthToTexture);
+    material->SetUniformValue("NormalFromTexture", normalFromTexture);
+    material->SetUniformValue("SpecularTexture", otherTexture);
+
+    material->SetUniformValue("MaxDistance", m_maxDistance);
+    material->SetUniformValue("Resolution", m_resolution);
+    material->SetUniformValue("Steps", m_steps);
+    material->SetUniformValue("Thickness", m_thickness);
+    material->SetUniformValue("Rior", m_rior);
+    material->SetUniformValue("DepthMax", m_depthMax);
     material->SetUniformValue("Enabled", 1);
     return material;
 }
@@ -661,6 +764,40 @@ void WaterApplication::RenderGUI()
             if (ImGui::DragFloat("Thickness", &m_thickness, 0.05f, 0.0f, 10.0))
             {
                 m_ssrMaterial->SetUniformValue("Thickness", m_thickness);
+            }
+            ImGui::Unindent();
+        }
+
+        if (ImGui::CollapsingHeader("SSRefraction Settings"))
+        {
+            ImGui::Indent();
+            if (ImGui::Checkbox("Enabled", &m_ssRefractionEnabled))
+            {
+                m_ssRefractionMaterial->SetUniformValue("Enabled", m_ssRefractionEnabled > 0 ? 1 : 0);
+            }
+            if (ImGui::DragFloat("Max distance", &m_RefractionMaxDistance, 1.0f, 0.0f, 100))
+            {
+                m_ssRefractionMaterial->SetUniformValue("MaxDistance", m_RefractionMaxDistance);
+            }
+            if (ImGui::DragFloat("Resolution", &m_Refractionresolution, 0.1f, 0.0f, 1.0f))
+            {
+                m_ssRefractionMaterial->SetUniformValue("Resolution", m_Refractionresolution);
+            }
+            if (ImGui::DragInt("Steps", &m_Refractionsteps, 1, 0, 100))
+            {
+                m_ssRefractionMaterial->SetUniformValue("Steps", m_Refractionsteps);
+            }
+            if (ImGui::DragFloat("Thickness", &m_Refractionthickness, 0.05f, 0.0f, 10.0))
+            {
+                m_ssRefractionMaterial->SetUniformValue("Thickness", m_Refractionthickness);
+            }
+            if (ImGui::DragFloat("Rior", &m_rior, 0.05f, 0.0f, 10.0))
+            {
+                m_ssRefractionMaterial->SetUniformValue("Rior", m_rior);
+            }
+            if (ImGui::DragFloat("Depth Max", &m_depthMax, 0.05f, 0.0f, 10.0))
+            {
+                m_ssRefractionMaterial->SetUniformValue("DepthMax", m_depthMax);
             }
             ImGui::Unindent();
         }

@@ -34,7 +34,8 @@ private:
     void InitializeRenderer();
 
     std::shared_ptr<Material> CreatePostFXMaterial(const char* fragmentShaderPath, std::shared_ptr<Texture2DObject> sourceTexture = nullptr);
-    std::shared_ptr<Material> CreateSSRMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture, std::shared_ptr<Texture2DObject> otherTexture);
+    std::shared_ptr<Material> CreateSSReflectionMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthTexture, std::shared_ptr<Texture2DObject> normalTexture, std::shared_ptr<Texture2DObject> otherTexture);
+    std::shared_ptr<Material> CreateSSRefractionMaterial(std::shared_ptr<Texture2DObject> sourceTexture, std::shared_ptr<Texture2DObject> depthFromTexture, std::shared_ptr<Texture2DObject> depthToTexture, std::shared_ptr<Texture2DObject> normalFromTexture, std::shared_ptr<Texture2DObject> otherTexture);
     std::shared_ptr<Material> CreateCompositeMaterial(std::shared_ptr<Texture2DObject> sourceTexture);
 
     Renderer::UpdateTransformsFunction GetFullscreenTransformFunction(std::shared_ptr<ShaderProgram> shaderProgramPtr) const;
@@ -69,8 +70,14 @@ private:
     float m_thickness;
     bool m_ssrEnabled;
 
-    // Other Properties
-    int m_showType;
+    //SSRefration Properties
+    float m_RefractionMaxDistance;
+    float m_Refractionresolution;
+    int   m_Refractionsteps;
+    float m_Refractionthickness;
+    float m_rior;
+    float m_depthMax;
+    bool m_ssRefractionEnabled;
 
     // Blur Properties
     int m_blurIterations;
@@ -87,6 +94,7 @@ private:
     std::shared_ptr<Material> m_defaultMaterial;
     std::shared_ptr<Material> m_deferredMaterial;
     std::shared_ptr<Material> m_ssrMaterial;
+    std::shared_ptr<Material> m_ssRefractionMaterial;
 
     // Framebuffers
     std::shared_ptr<FramebufferObject> m_mainSceneFramebuffer;
@@ -95,9 +103,21 @@ private:
     std::shared_ptr<Texture2DObject> m_normalTexture;
     std::shared_ptr<Texture2DObject> m_otherTexture;
 
+
+    // Refraction
+    std::shared_ptr<FramebufferObject> m_backgroundTexturesBuffer;
+    std::shared_ptr<Texture2DObject> m_backgroundTexture;
+    std::shared_ptr<Texture2DObject> m_backgroundDepth;
+    std::shared_ptr<FramebufferObject> m_refractionBuffer;
+    std::shared_ptr<Texture2DObject> m_refractionColorTexture;
+
+
+    //
     std::shared_ptr<FramebufferObject> m_fullSceneFramebuffer;
     std::array<std::shared_ptr<Texture2DObject>, 4> m_fullSceneTextures;
 
+    //Reflection
     std::shared_ptr<FramebufferObject> m_reflectionBuffer;
     std::shared_ptr<Texture2DObject> m_reflectiveColorTexture;
+
 };

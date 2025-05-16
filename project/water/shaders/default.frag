@@ -25,5 +25,5 @@ void main()
 	vec3 viewNormal = SampleNormalMap(NormalTexture, TexCoord, normalize(ViewNormal), normalize(ViewTangent), normalize(ViewBitangent));
 	FragNormal = mix(ViewNormal.xy, viewNormal.xy, HaveTextures.y);
 
-	FragOthers = mix(defaultSpecular, texture(SpecularTexture, TexCoord), HaveTextures.z);
+	FragOthers = mix(defaultSpecular, vec4(texture(SpecularTexture, TexCoord).rgb, 0), HaveTextures.z);
 }

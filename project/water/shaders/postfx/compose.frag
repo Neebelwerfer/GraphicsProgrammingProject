@@ -9,6 +9,7 @@ uniform sampler2D DepthTexture;
 uniform sampler2D SourceTexture;
 uniform sampler2D NormalTexture;
 uniform sampler2D ReflectiveTexture;
+uniform sampler2D RefractiveTexture;
 uniform sampler2D BlurReflectiveTexture;
 uniform sampler2D SpecularTexture;
 
@@ -45,6 +46,7 @@ void main()
 	viewDir = (InvViewMatrix * vec4(viewDir, 0)).xyz;
 
 	vec4 reflectiveColor = texture(ReflectiveTexture, TexCoord);
+	vec4 refractiveColor = texture(RefractiveTexture, TexCoord);
 	vec4 specular = texture(SpecularTexture, TexCoord);
 
 	// This should result in 1 if the ssr pass had hit something at this pixel otherwise 0
@@ -62,5 +64,6 @@ void main()
 	vec3 lightning = mix(ComputeIndirectLighting(data, viewDir), ComputeSSRIndirectLighting(data, viewDir, reflectiveColor, ssrVisibility), ssrVisibility > 0.0001 ? 1 : 0);
 
 	FragColor = texture(SourceTexture, TexCoord);
+	FragColor.rgb = mix(FragColor.rgb, refractiveColor.rgb, clamp(refractiveColor.a, 0, 1));
 	FragColor.rgb += lightning;
 }
