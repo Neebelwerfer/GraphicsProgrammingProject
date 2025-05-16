@@ -59,7 +59,7 @@ void main()
 	data.metalness = specular.z;
 
 	// If the ssr had no hit, we sample the environment map for reflections otherwise we sample the ssr map
-	vec3 lightning = mix(ComputeIndirectLighting(data, viewDir), ComputeSSRIndirectLighting(data, viewDir, reflectiveColor, ssrVisibility), ssrVisibility > 0.0 ? 1 : 0);
+	vec3 lightning = mix(ComputeIndirectLighting(data, viewDir), ComputeSSRIndirectLighting(data, viewDir, reflectiveColor, ssrVisibility), ssrVisibility > 0.0001 ? 1 : 0);
 
 	FragColor = texture(SourceTexture, TexCoord);
 	FragColor.rgb += lightning;

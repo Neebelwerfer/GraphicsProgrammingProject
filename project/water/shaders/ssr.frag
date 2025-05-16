@@ -151,5 +151,5 @@ void main()
 		// Scale based on length between the start point the the hit
 		* (1 - clamp(length(positionTo - positionFrom) / MaxDistance, 0, 1));
 
-	FragColor = vec4(mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit0), visibility);
+	FragColor = vec4(mix(vec3(0.0), texture(SourceTexture, uv.xy).rgb, hit1), visibility);
 }
