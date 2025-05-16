@@ -29,6 +29,7 @@ void main()
 	vec3 unitPositionFrom = normalize(positionFrom);
 	vec3 normal = normalize(GetImplicitNormal(texture(NormalTexture, TexCoord).xy));
 	vec3 reflection = normalize(reflect(unitPositionFrom, normal));
+	positionFrom += normal * 0.3;
 
 	vec4 startView = vec4(positionFrom, 1);
 	vec4 endView = vec4(positionFrom + (reflection * MaxDistance), 1);
