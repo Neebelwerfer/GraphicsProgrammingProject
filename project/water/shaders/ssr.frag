@@ -30,12 +30,13 @@ void main()
 	vec3 normal = normalize(GetImplicitNormal(texture(NormalTexture, TexCoord).xy));
 	vec3 reflection = normalize(reflect(unitPositionFrom, normal));
 
+	// Offset to help not self-hit on a plane
+	positionFrom += normal * 0.3;
+
 	vec4 startView = vec4(positionFrom, 1);
 	vec4 endView = vec4(positionFrom + (reflection * MaxDistance), 1);
 
 	// Early exit 
-	// 1. if depth is far clip
-	// 2. if the reflection goes toward the camera
 	if (texture(DepthTexture, TexCoord).r == 1 || reflection.z > 0 || Enabled == 0)
 	{
 		FragColor = vec4(0, 0, 0, 0);

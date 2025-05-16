@@ -411,7 +411,6 @@ void WaterApplication::InitializeRenderer()
         m_deferredMaterial->SetUniformValue("OthersTexture", gbufferRenderPass->GetOthersTexture());
         m_deferredMaterial->SetUniformValue("ShowType", m_showType);
     
-
         // Save some gbuffer textures for later
         m_depthTexture = gbufferRenderPass->GetDepthTexture();
         m_normalTexture = gbufferRenderPass->GetNormalTexture();
