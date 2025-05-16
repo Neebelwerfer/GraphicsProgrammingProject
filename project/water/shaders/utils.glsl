@@ -28,8 +28,9 @@ float ClampedDot(vec3 v1, vec3 v2)
 //
 vec3 GetImplicitNormal(vec2 normal)
 {
+	// Since the normal is in tangent space we can assume the z to be a positive value
 	float z = clamp(sqrt(1.0f - normal.x * normal.x - normal.y * normal.y), 0, 1);
-	return vec3(normal, z);
+	return normalize(vec3(normal, z));
 }
 
 vec3 TransformTangentNormal(vec3 normalTangentSpace, vec3 normal, vec3 tangent)
