@@ -96,8 +96,8 @@ void main()
 		// Break if out of bounds
 		if(uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1 || positionTo.z >= 0)
 		{
-			uv = vec4(0);
-			break;
+			FragColor = vec4(0);
+			return;
 		}
 		// Break if we register a hit
 		else if (depth < 0 && depth > -Thickness)
@@ -147,7 +147,7 @@ void main()
 
 	float visibility = hit1
 		// Scale based on how far, in depth, from the ray the hit was 
-		* (1 - clamp(depth / Thickness, 0, 1))
+		* (1 - clamp(abs(depth) / Thickness, 0, 1))
 		// Scale based on length between the start point the the hit
 		* (1 - clamp(length(positionTo - positionFrom) / MaxDistance, 0, 1));
 

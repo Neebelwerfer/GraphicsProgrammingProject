@@ -59,7 +59,7 @@ vec3 SampleNormalMapScaled(sampler2D normalTexture, vec2 texCoord, vec3 normal, 
 	normalMap *= scale;
 
 	// Get implicit Z component
-	vec3 normalTangentSpace = vec3(normalMap.xy, sqrt(max(0.0, 1.0 - dot(normalMap.xy, normalMap.xy))));
+	vec3 normalTangentSpace = GetImplicitNormal(normalMap);
 
 	// Create tangent space matrix
 	mat3 tangentMatrix = mat3(tangent, bitangent, normal);

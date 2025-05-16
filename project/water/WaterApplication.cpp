@@ -32,7 +32,7 @@
 const float _MaxPlaytime = 60;
 
 WaterApplication::WaterApplication()
-    : Application(1248, 1248, "Water Scene")
+    : Application(1024, 1024, "Water Scene")
     , m_renderer(GetDevice())
     , m_mainSceneFramebuffer(std::make_shared<FramebufferObject>())
     , m_reflectionBuffer(std::make_shared<FramebufferObject>())
@@ -43,7 +43,7 @@ WaterApplication::WaterApplication()
     , m_maxDistance(20)
     , m_resolution(0.7f)
     , m_steps(15)
-    , m_thickness(0.250f)
+    , m_thickness(0.500f)
     , m_blurIterations(5)
     , m_lightRotationSpeed(0.5)
     , m_ssrEnabled(true)
@@ -81,13 +81,14 @@ void WaterApplication::Update()
     if (m_play)
     {
         m_timeElapsed += GetDeltaTime();
-        if (m_spotLight)
-        {
-            glm::vec3 rotation = m_spotLight->GetTransform()->GetRotation();
-            rotation.y += m_lightRotationSpeed * GetDeltaTime();
-            m_spotLight->GetTransform()->SetRotation(rotation);
-            m_spotLight->MatchLightToTransform();
-        }
+    }
+
+    if (m_spotLight)
+    {
+        glm::vec3 rotation = m_spotLight->GetTransform()->GetRotation();
+        rotation.y = m_lightRotationSpeed * m_timeElapsed;
+        m_spotLight->GetTransform()->SetRotation(rotation);
+        m_spotLight->MatchLightToTransform();
     }
 
     if (m_timeElapsed > _MaxPlaytime)

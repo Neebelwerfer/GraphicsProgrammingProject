@@ -94,7 +94,7 @@ void GBufferRenderPass::Render()
     const auto& drawcallCollection = renderer.GetDrawcalls(m_drawcallCollectionIndex);
 
     if(!m_transparencyPass)
-        renderer.GetDevice().Clear(true, Color(0.0f, 0.0f, 0.0f, 1.0f), true, 1.0f);
+        renderer.GetDevice().Clear(true, Color(0.0f, 0.0f, 0.0f, 0.0f), true, 1.0f);
 
     bool wasSRGB = renderer.GetDevice().IsFeatureEnabled(GL_FRAMEBUFFER_SRGB);
     renderer.GetDevice().EnableFeature(GL_FRAMEBUFFER_SRGB);
