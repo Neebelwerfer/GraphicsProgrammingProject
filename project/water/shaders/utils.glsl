@@ -141,6 +141,12 @@ vec3 HSVToRGB( vec3 hsv )
    return hsv.z * mix( K.xxx, clamp(p - K.xxx, 0, 1), hsv.y );
 }
 
+float LinearizeDepth(float d ,float zNear, float zFar)
+{
+	float ndc = depth * 2.0 - 1.0; 
+    return (2 * zNear * zFar) / (zFar + zNear - ndc * (zNear - zFar));
+}
+
 vec4 TransformViewToScreenSpace(vec4 view, mat4 projMatrix, vec2 texSize)
 {
 	vec4 frag = view;

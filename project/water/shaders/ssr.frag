@@ -8,9 +8,12 @@ out vec4 FragColor;
 uniform sampler2D DepthTexture;
 uniform sampler2D SourceTexture;
 uniform sampler2D NormalTexture;
+uniform sampler2D SpecularTexture;
 uniform mat4 ProjectionMatrix;
 uniform mat4 InvProjMatrix;
 uniform int Enabled;
+uniform float ZNear;
+uniform float ZFar;
 
 //SSR Properties
 uniform float MaxDistance;
@@ -29,9 +32,6 @@ void main()
 	vec3 unitPositionFrom = normalize(positionFrom);
 	vec3 normal = normalize(GetImplicitNormal(texture(NormalTexture, TexCoord).xy));
 	vec3 reflection = normalize(reflect(unitPositionFrom, normal));
-
-	// Offset to help not self-hit on a plane
-	positionFrom += normal * 0.3;
 
 	vec4 startView = vec4(positionFrom, 1);
 	vec4 endView = vec4(positionFrom + (reflection * MaxDistance), 1);
@@ -57,7 +57,8 @@ void main()
 	// Calculate how big steps we take. The sizes of the steps are adjusted by resolution
 	// higher resolution leads to smaller but more steps
 	float useX = abs(deltaX) >= abs(deltaY) ? 1.0 : 0.0;
-	float delta = mix(abs(deltaY), abs(deltaX), useX) * clamp(Resolution, 0.0, 1.0);
+	float maxDelta = mix(texSize.y * 0.25f, texSize.x * 0.25f, useX);
+	float delta = min(mix(abs(deltaY), abs(deltaX), useX) * clamp(Resolution, 0.0, 1.0), maxDelta);
 	vec2 increment = vec2(deltaX, deltaY) / max(delta, 0.001);
 
 	// Track our progress along the vector
@@ -103,7 +104,7 @@ void main()
 		// Break if we register a hit
 		else if (depth < 0 && depth > -Thickness)
 		{
-			hit0 = 1;
+			hit0 = texture(SpecularTexture, uv.xy).a == 1 ? 0 : 1;
 			break;
 		}
 		// Save our current search progress in search0

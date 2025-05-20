@@ -37,8 +37,13 @@ public:
     // Extract the basis vectors from the view matrix
     void ExtractVectors(glm::vec3& right, glm::vec3& up, glm::vec3& forward) const;
 
+    float getNear() const;
+    float getFar() const;
 
 private:
+    float m_near;
+    float m_far;
+
     // The view matrix (from world space to view space)
     glm::mat4 m_viewMatrix;
 

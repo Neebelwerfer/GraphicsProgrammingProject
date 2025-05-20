@@ -3,7 +3,7 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <numbers>
 
-Camera::Camera() : m_viewMatrix(1.0f), m_projMatrix(1.0f)
+Camera::Camera() : m_viewMatrix(1.0f), m_projMatrix(1.0f), m_near(0), m_far(100)
 {
 }
 
@@ -14,7 +14,20 @@ void Camera::SetViewMatrix(const glm::vec3& position, const glm::vec3& lookAt, c
 
 void Camera::SetPerspectiveProjectionMatrix(float fov, float aspect, float near, float far)
 {
+    m_near = near;
+    m_far = far;
+
     m_projMatrix = glm::perspective(fov, aspect, near, far);
+}
+
+float Camera::getFar() const
+{
+    return m_far;
+}
+
+float Camera::getNear() const
+{
+    return m_near;
 }
 
 void Camera::SetOrthographicProjectionMatrix(const glm::vec3& min, const glm::vec3& max)

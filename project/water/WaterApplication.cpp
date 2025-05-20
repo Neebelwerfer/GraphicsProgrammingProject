@@ -502,7 +502,8 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     // Get transform related uniform locations
     ShaderProgram::Location projMatrixLocation = shaderProgramPtr->GetUniformLocation("ProjectionMatrix");
     ShaderProgram::Location invProjMatrixLocation = shaderProgramPtr->GetUniformLocation("InvProjMatrix");
-    ShaderProgram::Location invViewMatrixLocation = shaderProgramPtr->GetUniformLocation("InvViewMatrix");
+    ShaderProgram::Location zNearLocation = shaderProgramPtr->GetUniformLocation("ZNear");
+    ShaderProgram::Location zFarLocation = shaderProgramPtr->GetUniformLocation("ZFar");
 
     // Register shader with renderer
     m_renderer.RegisterShaderProgram(shaderProgramPtr,
@@ -510,6 +511,8 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
         {
             shaderProgram.SetUniform(projMatrixLocation, camera.GetProjectionMatrix());
             shaderProgram.SetUniform(invProjMatrixLocation, glm::inverse(camera.GetProjectionMatrix()));
+            shaderProgram.SetUniform(zNearLocation, camera.getNear());
+            shaderProgram.SetUniform(zFarLocation, camera.getFar());
         },
         nullptr
     );
@@ -518,6 +521,8 @@ std::shared_ptr<Material> WaterApplication::CreateSSRMaterial(std::shared_ptr<Te
     filteredUniforms.insert("InvProjMatrix");
     filteredUniforms.insert("InvViewMatrix");
     filteredUniforms.insert("ProjectionMatrix");
+    filteredUniforms.insert("ZNear");
+    filteredUniforms.insert("ZFar");
 
     // Create material
     std::shared_ptr<Material> material = std::make_shared<Material>(shaderProgramPtr, filteredUniforms);
