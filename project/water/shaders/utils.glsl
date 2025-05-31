@@ -143,7 +143,7 @@ vec3 HSVToRGB( vec3 hsv )
 
 float LinearizeDepth(float d ,float zNear, float zFar)
 {
-	float ndc = depth * 2.0 - 1.0; 
+	float ndc = d * 2.0 - 1.0; 
     return (2 * zNear * zFar) / (zFar + zNear - ndc * (zNear - zFar));
 }
 

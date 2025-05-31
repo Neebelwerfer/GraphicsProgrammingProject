@@ -92,7 +92,7 @@ void main()
 
 		// Convert position, normal and view vector to world space
 		vec3 worldNormal = (InvViewMatrix * vec4(normalize(combinedViewSpaceNormal), 0)).xyz;
-		vec3 worldPosition = (InvViewMatrix * vec4(normalize(ViewPosition), 1)).xyz;
+		vec3 worldPosition = (InvViewMatrix * vec4(ViewPosition, 1)).xyz;
 		viewDir = (InvViewMatrix * vec4(viewDir, 0)).xyz;
 
 		// Set surface material data
