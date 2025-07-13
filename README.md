@@ -1,3 +1,5 @@
-## Graphics Programming Exercises
+## Graphics Programming Project
 
-This repository contains the exercises of the Graphics Programming course from the IT University of Copenhagen. 
+This repository contains my project done for the Graphics programming Course
+
+The goal of the project is to create a water shader that play a flowing animation and have screen-space reflections
