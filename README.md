@@ -1,4 +1,4 @@
-## Graphics Programming Project
+## Water and Reflections
 
 This repository contains my project done for the Graphics programming Course
 
